@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.env.Profiles;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -37,6 +38,7 @@ import javax.annotation.PostConstruct;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.function.Predicate;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -64,7 +66,8 @@ public abstract class BaseApplicationTest {
     public void checkSpring() {
         assertNotNull(context);
         assertNotNull(applicationConfig);
-        assertTrue(applicationConfig.getEnvironment().acceptsProfiles("testing"));
+        Profiles profiles = Profiles.of("testing");
+        assertTrue(applicationConfig.getEnvironment().acceptsProfiles(profiles));
     }
 
     /**
