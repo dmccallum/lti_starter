@@ -15,14 +15,14 @@
 package ltistarter.repository;
 
 import ltistarter.model.LtiKeyEntity;
-import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * NOTE: use of this interface magic makes all subclass-based (CGLIB) proxies fail
  */
 @Transactional
-public interface LtiKeyRepository extends PagingAndSortingRepository<LtiKeyEntity, Long> {
+public interface LtiKeyRepository extends JpaRepository<LtiKeyEntity, Long> {
     /* Add custom crud methods here
      * If you need a custom implementation of the methods then see docs for steps to add it
      * http://docs.spring.io/spring-data/data-commons/docs/current/reference/html/repositories.html

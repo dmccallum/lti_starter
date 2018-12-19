@@ -62,14 +62,14 @@ public class DatabasePreload {
             // preload the sample data
             log.info("INIT - preloaded keys and user");
             // create our sample key
-            ltiKeyRepository.save(new LtiKeyEntity("key", "secret"));
+            ltiKeyRepository.saveAndFlush(new LtiKeyEntity("key", "secret"));
             // create our sample user
-            LtiUserEntity user = ltiUserRepository.save(new LtiUserEntity("azeckoski", null));
-            ProfileEntity profile = profileRepository.save(new ProfileEntity("AaronZeckoski", null, "azeckoski@test.com"));
+            LtiUserEntity user = ltiUserRepository.saveAndFlush(new LtiUserEntity("azeckoski", null));
+            ProfileEntity profile = profileRepository.saveAndFlush(new ProfileEntity("AaronZeckoski", null, "azeckoski@test.com"));
             // now add profile to the user
             user.setProfile(profile);
             profile.getUsers().add(user);
-            ltiUserRepository.save(user);
+            ltiUserRepository.saveAndFlush(user);
         }
     }
 

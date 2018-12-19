@@ -21,13 +21,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.Assert.*;
 
 @SuppressWarnings({"UnusedAssignment", "SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(SpringRunner.class)
 public class LTITests extends BaseApplicationTest {
 
     @Autowired
@@ -58,31 +60,31 @@ public class LTITests extends BaseApplicationTest {
         MockHttpServletRequest request;
         LTIRequest ltiRequest;
 
-        LtiKeyEntity key1 = ltiKeyRepository.save(new LtiKeyEntity("AZkey", "AZsecret"));
-        LtiKeyEntity key2 = ltiKeyRepository.save(new LtiKeyEntity("key", "secret"));
-        LtiKeyEntity key3 = ltiKeyRepository.save(new LtiKeyEntity("3key", "secret"));
-        LtiKeyEntity key4 = ltiKeyRepository.save(new LtiKeyEntity("4key", "secret"));
-        LtiKeyEntity key5 = ltiKeyRepository.save(new LtiKeyEntity("5key", "secret"));
+        LtiKeyEntity key1 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("AZkey", "AZsecret"));
+        LtiKeyEntity key2 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("key", "secret"));
+        LtiKeyEntity key3 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("3key", "secret"));
+        LtiKeyEntity key4 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("4key", "secret"));
+        LtiKeyEntity key5 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("5key", "secret"));
 
-        LtiUserEntity user1 = ltiUserRepository.save(new LtiUserEntity("azeckoski", null));
-        LtiUserEntity user2 = ltiUserRepository.save(new LtiUserEntity("bzeckoski", null));
-        LtiUserEntity user3 = ltiUserRepository.save(new LtiUserEntity("czeckoski", null));
-        LtiUserEntity user4 = ltiUserRepository.save(new LtiUserEntity("dzeckoski", null));
+        LtiUserEntity user1 = ltiUserRepository.saveAndFlush(new LtiUserEntity("azeckoski", null));
+        LtiUserEntity user2 = ltiUserRepository.saveAndFlush(new LtiUserEntity("bzeckoski", null));
+        LtiUserEntity user3 = ltiUserRepository.saveAndFlush(new LtiUserEntity("czeckoski", null));
+        LtiUserEntity user4 = ltiUserRepository.saveAndFlush(new LtiUserEntity("dzeckoski", null));
 
-        LtiContextEntity context1 = ltiContextRepository.save(new LtiContextEntity("AZcontext", key1, "AZCtitle", null));
-        LtiContextEntity context2 = ltiContextRepository.save(new LtiContextEntity("3context", key3, "3Ctitle", null));
-        LtiContextEntity context3 = ltiContextRepository.save(new LtiContextEntity("5context", key5, "5Ctitle", null));
+        LtiContextEntity context1 = ltiContextRepository.saveAndFlush(new LtiContextEntity("AZcontext", key1, "AZCtitle", null));
+        LtiContextEntity context2 = ltiContextRepository.saveAndFlush(new LtiContextEntity("3context", key3, "3Ctitle", null));
+        LtiContextEntity context3 = ltiContextRepository.saveAndFlush(new LtiContextEntity("5context", key5, "5Ctitle", null));
 
-        LtiLinkEntity link1 = ltiLinkRepository.save(new LtiLinkEntity("AZlink", context1, "linkTitle"));
+        LtiLinkEntity link1 = ltiLinkRepository.saveAndFlush(new LtiLinkEntity("AZlink", context1, "linkTitle"));
 
-        LtiMembershipEntity member1 = ltiMembershipRepository.save(new LtiMembershipEntity(context1, user1, LtiMembershipEntity.ROLE_STUDENT));
-        LtiMembershipEntity member2 = ltiMembershipRepository.save(new LtiMembershipEntity(context1, user2, LtiMembershipEntity.ROLE_STUDENT));
-        LtiMembershipEntity member3 = ltiMembershipRepository.save(new LtiMembershipEntity(context1, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
-        LtiMembershipEntity member4 = ltiMembershipRepository.save(new LtiMembershipEntity(context2, user1, LtiMembershipEntity.ROLE_STUDENT));
-        LtiMembershipEntity member5 = ltiMembershipRepository.save(new LtiMembershipEntity(context2, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
+        LtiMembershipEntity member1 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context1, user1, LtiMembershipEntity.ROLE_STUDENT));
+        LtiMembershipEntity member2 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context1, user2, LtiMembershipEntity.ROLE_STUDENT));
+        LtiMembershipEntity member3 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context1, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
+        LtiMembershipEntity member4 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context2, user1, LtiMembershipEntity.ROLE_STUDENT));
+        LtiMembershipEntity member5 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context2, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
 
-        LtiServiceEntity service11 = ltiServiceRepository.save(new LtiServiceEntity("grading", key1, "format"));
-        LtiServiceEntity service12 = ltiServiceRepository.save(new LtiServiceEntity("tracking", key1, "format"));
+        LtiServiceEntity service11 = ltiServiceRepository.saveAndFlush(new LtiServiceEntity("grading", key1, "format"));
+        LtiServiceEntity service12 = ltiServiceRepository.saveAndFlush(new LtiServiceEntity("tracking", key1, "format"));
 
         request = new MockHttpServletRequest(); // NOT LTI request
         try {

@@ -29,7 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.context.embedded.ServletRegistrationBean;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
@@ -142,7 +142,13 @@ public class Application extends WebMvcConfigurerAdapter {
         @Override
         protected void configure(HttpSecurity http) throws Exception {
             /**/
-            http.requestMatchers().antMatchers("/lti/**", "/lti2/**").and().addFilterBefore(ltioAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class).authorizeRequests().anyRequest().hasRole("LTI").and().csrf().disable();
+            http.requestMatchers().antMatchers("/lti/**", "/lti2/**").and()
+                    .addFilterBefore(ltioAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)
+                    .authorizeRequests().anyRequest().hasRole("LTI")
+                    .and().csrf().disable().headers().frameOptions().disable();
+            //NOTE: the .headers().frameOptions().disable(); is done to work with my local sakai without https... but that should be
+            // configured correctly.
+
             /*
             http.antMatcher("/lti/**")
                     .addFilterBefore(ltioAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)

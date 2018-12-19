@@ -20,11 +20,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.Assert.assertNotNull;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(SpringRunner.class)
 public class ApplicationTests extends BaseApplicationTest {
 
     @Autowired
@@ -36,7 +37,7 @@ public class ApplicationTests extends BaseApplicationTest {
     public void testConfig() {
         assertNotNull(applicationConfig);
         assertNotNull(configRepository);
-        configRepository.save(new ConfigEntity("test.thing", "Value"));
+        configRepository.saveAndFlush(new ConfigEntity("test.thing", "Value"));
     }
 
 }

@@ -20,7 +20,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
@@ -30,12 +31,12 @@ import java.util.List;
 
 import static org.junit.Assert.*;
 
-@SuppressWarnings("UnusedAssignment")
-@RunWith(SpringJUnit4ClassRunner.class)
+//@SuppressWarnings("UnusedAssignment")
+@RunWith(SpringRunner.class)
 public class JPATests extends BaseApplicationTest {
 
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     LtiKeyRepository ltiKeyRepository;
 
     @Test
@@ -48,8 +49,8 @@ public class JPATests extends BaseApplicationTest {
         keys = ltiKeyRepository.findAll();
         assertFalse(keys.iterator().hasNext());
 
-        ltiKeyRepository.save(new LtiKeyEntity("key", "secret"));
-        ltiKeyRepository.save(new LtiKeyEntity("AZkey", "AZsecret"));
+        ltiKeyRepository.saveAndFlush(new LtiKeyEntity("key", "secret"));
+        ltiKeyRepository.saveAndFlush(new LtiKeyEntity("AZkey", "AZsecret"));
         keys = ltiKeyRepository.findAll();
         assertTrue(keys.iterator().hasNext());
         assertEquals(2, CollectionUtils.size(keys.iterator()));
@@ -81,13 +82,13 @@ public class JPATests extends BaseApplicationTest {
     }
 
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     LtiUserRepository ltiUserRepository;
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     ProfileRepository profileRepository;
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     SSOKeyRepository ssoKeyRepository;
 
     @Test
@@ -110,8 +111,8 @@ public class JPATests extends BaseApplicationTest {
         ssoKeys = ssoKeyRepository.findAll();
         assertFalse(ssoKeys.iterator().hasNext());
 
-        profileRepository.save(new ProfileEntity("AaronZeckoski", null, "azeckoski@test.com"));
-        profileRepository.save(new ProfileEntity("BeckyZeckoski", null, "rzeckoski@test.com"));
+        profileRepository.saveAndFlush(new ProfileEntity("AaronZeckoski", null, "azeckoski@test.com"));
+        profileRepository.saveAndFlush(new ProfileEntity("BeckyZeckoski", null, "rzeckoski@test.com"));
         profiles = profileRepository.findAll();
         assertTrue(profiles.iterator().hasNext());
         assertEquals(2, CollectionUtils.size(profiles.iterator()));
@@ -121,8 +122,8 @@ public class JPATests extends BaseApplicationTest {
         assertNotNull(profile);
         assertTrue(profile.getSsoKeys().isEmpty());
 
-        ssoKeyRepository.save(new SSOKeyEntity("random_GOOGLEKEY", "google.com"));
-        ssoKeyRepository.save(new SSOKeyEntity("AZ_google_key", "google.com"));
+        ssoKeyRepository.saveAndFlush(new SSOKeyEntity("random_GOOGLEKEY", "google.com"));
+        ssoKeyRepository.saveAndFlush(new SSOKeyEntity("AZ_google_key", "google.com"));
         ssoKeys = ssoKeyRepository.findAll();
         assertTrue(ssoKeys.iterator().hasNext());
         assertEquals(2, CollectionUtils.size(ssoKeys.iterator()));
@@ -133,7 +134,7 @@ public class JPATests extends BaseApplicationTest {
         // now add profile to the ssoKey
         ssoKey.setProfile(profile);
         profile.getSsoKeys().add(ssoKey);
-        ssoKeyRepository.save(ssoKey);
+        ssoKeyRepository.saveAndFlush(ssoKey);
         ssoKey = ssoKeyRepository.findByKeyKey("AZ_google_key");
         assertNotNull(ssoKey);
         assertNotNull(ssoKey.getProfile());
@@ -146,7 +147,7 @@ public class JPATests extends BaseApplicationTest {
     }
 
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     LtiContextRepository ltiContextRepository;
 
     @PersistenceContext
@@ -154,7 +155,7 @@ public class JPATests extends BaseApplicationTest {
 
     @Test
     @Transactional
-    @SuppressWarnings("JpaQlInspection")
+    //@SuppressWarnings("JpaQlInspection")
     public void testJPAQuery() {
         assertNotNull(entityManager);
         assertNotNull(ltiKeyRepository);
@@ -162,15 +163,15 @@ public class JPATests extends BaseApplicationTest {
         Query q;
         List rows;
 
-        ltiKeyRepository.save(new LtiKeyEntity("key", "secret"));
-        LtiKeyEntity azkey = ltiKeyRepository.save(new LtiKeyEntity("AZkey", "AZsecret"));
+        ltiKeyRepository.saveAndFlush(new LtiKeyEntity("key", "secret"));
+        LtiKeyEntity azkey = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("AZkey", "AZsecret"));
 
         q = entityManager.createQuery("SELECT k.keyKey FROM LtiKeyEntity k ORDER BY k.keyId");
         List keys = q.getResultList();
         assertNotNull(keys);
         assertEquals(2, keys.size());
 
-        ltiContextRepository.save(new LtiContextEntity("AZcontext", azkey, "AZCtitle", null));
+        ltiContextRepository.saveAndFlush(new LtiContextEntity("AZcontext", azkey, "AZCtitle", null));
 
         q = entityManager.createQuery("SELECT k.keyKey, c.contextKey, c.title FROM LtiKeyEntity k LEFT JOIN k.contexts c ORDER BY k.keyId");
         rows = q.getResultList();
@@ -185,15 +186,15 @@ public class JPATests extends BaseApplicationTest {
     }
 
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     LtiLinkRepository ltiLinkRepository;
     @Autowired
-    @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
+    //@SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
     LtiMembershipRepository ltiMembershipRepository;
 
     @Test
     @Transactional
-    @SuppressWarnings("JpaQlInspection")
+    //@SuppressWarnings("JpaQlInspection")
     public void testJPAJoinsQuery() {
         assertNotNull(entityManager);
         assertNotNull(ltiKeyRepository);
@@ -205,28 +206,28 @@ public class JPATests extends BaseApplicationTest {
         List rows;
         Object[] row;
 
-        LtiKeyEntity key1 = ltiKeyRepository.save(new LtiKeyEntity("AZkey", "AZsecret"));
-        LtiKeyEntity key2 = ltiKeyRepository.save(new LtiKeyEntity("key", "secret"));
-        LtiKeyEntity key3 = ltiKeyRepository.save(new LtiKeyEntity("3key", "secret"));
-        LtiKeyEntity key4 = ltiKeyRepository.save(new LtiKeyEntity("4key", "secret"));
-        LtiKeyEntity key5 = ltiKeyRepository.save(new LtiKeyEntity("5key", "secret"));
+        LtiKeyEntity key1 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("AZkey", "AZsecret"));
+        LtiKeyEntity key2 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("key", "secret"));
+        LtiKeyEntity key3 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("3key", "secret"));
+        LtiKeyEntity key4 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("4key", "secret"));
+        LtiKeyEntity key5 = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("5key", "secret"));
 
-        LtiUserEntity user1 = ltiUserRepository.save(new LtiUserEntity("azeckoski", null));
-        LtiUserEntity user2 = ltiUserRepository.save(new LtiUserEntity("bzeckoski", null));
-        LtiUserEntity user3 = ltiUserRepository.save(new LtiUserEntity("czeckoski", null));
-        LtiUserEntity user4 = ltiUserRepository.save(new LtiUserEntity("dzeckoski", null));
+        LtiUserEntity user1 = ltiUserRepository.saveAndFlush(new LtiUserEntity("azeckoski", null));
+        LtiUserEntity user2 = ltiUserRepository.saveAndFlush(new LtiUserEntity("bzeckoski", null));
+        LtiUserEntity user3 = ltiUserRepository.saveAndFlush(new LtiUserEntity("czeckoski", null));
+        LtiUserEntity user4 = ltiUserRepository.saveAndFlush(new LtiUserEntity("dzeckoski", null));
 
-        LtiContextEntity context1 = ltiContextRepository.save(new LtiContextEntity("AZcontext", key1, "AZCtitle", null));
-        LtiContextEntity context2 = ltiContextRepository.save(new LtiContextEntity("3context", key3, "3Ctitle", null));
-        LtiContextEntity context3 = ltiContextRepository.save(new LtiContextEntity("5context", key5, "5Ctitle", null));
+        LtiContextEntity context1 = ltiContextRepository.saveAndFlush(new LtiContextEntity("AZcontext", key1, "AZCtitle", null));
+        LtiContextEntity context2 = ltiContextRepository.saveAndFlush(new LtiContextEntity("3context", key3, "3Ctitle", null));
+        LtiContextEntity context3 = ltiContextRepository.saveAndFlush(new LtiContextEntity("5context", key5, "5Ctitle", null));
 
-        LtiLinkEntity link1 = ltiLinkRepository.save(new LtiLinkEntity("AZlink", context1, "linkTitle"));
+        LtiLinkEntity link1 = ltiLinkRepository.saveAndFlush(new LtiLinkEntity("AZlink", context1, "linkTitle"));
 
-        LtiMembershipEntity member1 = ltiMembershipRepository.save(new LtiMembershipEntity(context1, user1, LtiMembershipEntity.ROLE_STUDENT));
-        LtiMembershipEntity member2 = ltiMembershipRepository.save(new LtiMembershipEntity(context1, user2, LtiMembershipEntity.ROLE_STUDENT));
-        LtiMembershipEntity member3 = ltiMembershipRepository.save(new LtiMembershipEntity(context1, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
-        LtiMembershipEntity member4 = ltiMembershipRepository.save(new LtiMembershipEntity(context2, user1, LtiMembershipEntity.ROLE_STUDENT));
-        LtiMembershipEntity member5 = ltiMembershipRepository.save(new LtiMembershipEntity(context2, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
+        LtiMembershipEntity member1 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context1, user1, LtiMembershipEntity.ROLE_STUDENT));
+        LtiMembershipEntity member2 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context1, user2, LtiMembershipEntity.ROLE_STUDENT));
+        LtiMembershipEntity member3 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context1, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
+        LtiMembershipEntity member4 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context2, user1, LtiMembershipEntity.ROLE_STUDENT));
+        LtiMembershipEntity member5 = ltiMembershipRepository.saveAndFlush(new LtiMembershipEntity(context2, user3, LtiMembershipEntity.ROLE_INTRUCTOR));
 
         // make sure encoding worked
         assertEquals(key1.getKeySha256(), BaseEntity.makeSHA256(key1.getKeyKey()));

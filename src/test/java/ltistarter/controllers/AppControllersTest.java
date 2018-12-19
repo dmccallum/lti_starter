@@ -28,6 +28,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth.provider.filter.OAuthProviderProcessingFilter;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -41,7 +42,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@RunWith(SpringJUnit4ClassRunner.class)
+@RunWith(SpringRunner.class)
 @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
 public class AppControllersTest extends BaseApplicationTest {
 
@@ -113,7 +114,7 @@ public class AppControllersTest extends BaseApplicationTest {
     @Transactional // rollback after
     public void testLoadLTI() throws Exception {
         // test minimal LTI launch
-        LtiKeyEntity key = ltiKeyRepository.save(new LtiKeyEntity("AZltiKey", "AZsecret"));
+        LtiKeyEntity key = ltiKeyRepository.saveAndFlush(new LtiKeyEntity("AZltiKey", "AZsecret"));
         MockHttpSession session = makeAuthSession("azeckoski", "ROLE_LTI", "ROLE_OAUTH", "ROLE_USER");
         MvcResult result = this.mockMvc.perform(
                 post("/lti").session(session)
