@@ -43,15 +43,15 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.config.annotation.web.servlet.configuration.EnableWebMvcSecurity;
 import org.springframework.security.oauth.provider.OAuthProcessingFilterEntryPoint;
 import org.springframework.security.oauth.provider.token.InMemoryProviderTokenServices;
 import org.springframework.security.oauth.provider.token.OAuthProviderTokenServices;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.util.StringValueResolver;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.annotation.PostConstruct;
 
@@ -60,10 +60,10 @@ import javax.annotation.PostConstruct;
 @EnableAutoConfiguration
 @EnableTransactionManagement // enables TX management and @Transaction
 @EnableCaching // enables caching and @Cache* tags
-@EnableWebMvcSecurity // enable spring security and web mvc hooks
+@EnableWebSecurity // enable spring security and web mvc hooks
 @EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
 // allows @Secured flag - proxyTargetClass = true causes this to die
-public class Application extends WebMvcConfigurerAdapter {
+public class Application implements WebMvcConfigurer {
 
     final static Logger log = LoggerFactory.getLogger(Application.class);
 
@@ -222,7 +222,7 @@ public class Application extends WebMvcConfigurerAdapter {
         @Override
         protected void configure(HttpSecurity http) throws Exception {
             // this ensures security context info (Principal, sec:authorize, etc.) is accessible on all paths
-            http.antMatcher("/**").authorizeRequests().anyRequest().permitAll();
+            http.antMatcher("/**").authorizeRequests().anyRequest().permitAll().and().headers().frameOptions().disable();
         }
     }
 

@@ -20,7 +20,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,11 +58,11 @@ public class JPATests extends BaseApplicationTest {
         key = ltiKeyRepository.findByKeyKey("key");
         assertNotNull(key);
         assertEquals("secret", key.getSecret());
-        LtiKeyEntity key2 = ltiKeyRepository.findOne(key.getKeyId());
+        LtiKeyEntity key2 = ltiKeyRepository.findById(key.getKeyId()).get();
         assertNotNull(key2);
         assertEquals(key, key2);
 
-        key = ltiKeyRepository.findOne(key.getKeyId());
+        key = ltiKeyRepository.findById(key.getKeyId()).get();
         assertNotNull(key);
 
         ltiKeyRepository.delete(key);
@@ -116,7 +115,7 @@ public class JPATests extends BaseApplicationTest {
         profiles = profileRepository.findAll();
         assertTrue(profiles.iterator().hasNext());
         assertEquals(2, CollectionUtils.size(profiles.iterator()));
-        profile = profileRepository.findOne(91919l);
+        profile = profileRepository.findById(91919l).get();
         assertNull(profile);
         profile = profileRepository.findByProfileKey("AaronZeckoski");
         assertNotNull(profile);

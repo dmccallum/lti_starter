@@ -14,6 +14,8 @@
  */
 package ltistarter.controllers;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Metrics;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +36,7 @@ public class HomeController extends BaseController {
         log.info("HOME: " + req);
         commonModelPopulate(req, principal, model);
         model.addAttribute("name", "HOME");
-        counterService.increment("home");
+        Counter featureCounter = Metrics.counter("home");
         return "home"; // name of the template
     }
 
