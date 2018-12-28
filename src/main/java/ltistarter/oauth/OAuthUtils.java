@@ -14,6 +14,13 @@
  */
 package ltistarter.oauth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureException;
+import io.jsonwebtoken.SigningKeyResolverAdapter;
+import ltistarter.model.IssConfigurationEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +35,18 @@ import org.springframework.security.oauth2.client.token.grant.code.Authorization
 import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 
+import java.security.GeneralSecurityException;
+import java.security.Key;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Security;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Base64;
 
 /**
  * OAuth handling utils
@@ -36,6 +54,9 @@ import java.util.Map;
 public class OAuthUtils {
 
     final static Logger log = LoggerFactory.getLogger(OAuthUtils.class);
+
+    //This is added to deal with the PCKS#1 key that IMS is providing in their test platform.
+    //static { Security.addProvider(new BouncyCastleProvider()); }
 
     public static ResponseEntity sendOAuth1Request(String url, String consumerKey, String sharedSecret, Map<String, String> params, Map<String, String> headers) {
         assert url != null;
@@ -68,5 +89,22 @@ public class OAuthUtils {
         ResponseEntity<String> response = restTemplate.postForEntity(url, params, String.class, (Map<String, ?>) null);
         return response;
     }
+
+    public static PrivateKey loadPrivateKey(String key) throws GeneralSecurityException {
+        String privateKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "");
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
+        PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
+        return privKey;
+    }
+
+    public static RSAPublicKey loadPublicKey(String key) throws GeneralSecurityException {
+        String publicKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");;
+        KeyFactory kf = KeyFactory.getInstance("RSA");
+        X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyContent));
+        RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
+        return pubKey;
+    }
+
 
 }

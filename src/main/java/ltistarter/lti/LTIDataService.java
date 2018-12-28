@@ -151,12 +151,23 @@ public class LTIDataService {
         return lti.loaded;
     }
 
+    @Transactional
+    //TODO Replicate this to LTI3... or make a generic lti... but I think that wouldn't work.
+    public boolean loadLTIDataFromDB(LTI3Request lti) {
+        return true;
+    }
+
+    @Transactional
+    public int updateLTIDataInDB(LTI3Request lti) {
+        return 1;
+    }
+
     /**
      * Attempts to insert or update the various LTI launch data (or other data that is part of this request)
      *
      * @param lti the LTIRequest which we are populating
      * @return the number of changes (inserts or updates) that occur
-     */
+    */
     @Transactional
     public int updateLTIDataInDB(LTIRequest lti) {
         assert repos != null : "access to the repos is required";
@@ -317,6 +328,12 @@ public class LTIDataService {
     public KeyRequestEntity findKeyRequest(LTIRequest lti) {
         assert lti != null;
         assert lti.getUser() != null : "User not populated in the LTIRequest";
+        return repos.keyRequests.findByUser_UserId(lti.getUser().getUserId());
+    }
+
+    public KeyRequestEntity findKeyRequest(LTI3Request lti) {
+        assert lti != null;
+        assert lti.getUser() != null : "User not populated in the LTI3Request";
         return repos.keyRequests.findByUser_UserId(lti.getUser().getUserId());
     }
 

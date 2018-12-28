@@ -63,6 +63,9 @@ public class AllRepositories {
     @Autowired
     public SSOKeyRepository ssoKeys;
 
+    @Autowired
+    public IssConfigurationRepository issConfigurationRepository;
+
     @PersistenceContext
     public EntityManager entityManager;
 
