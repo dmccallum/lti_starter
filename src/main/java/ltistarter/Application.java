@@ -166,7 +166,7 @@ public class Application implements WebMvcConfigurer {
         @Override
         protected void configure(HttpSecurity http) throws Exception {
             // this is open
-            http.antMatcher("/oidc/**").authorizeRequests().anyRequest().permitAll().and().headers().frameOptions().disable();
+            http.antMatcher("/oidc/**").authorizeRequests().anyRequest().permitAll().and().csrf().disable().headers().frameOptions().disable();
         }
     }
 
@@ -189,8 +189,7 @@ public class Application implements WebMvcConfigurer {
             /**/
             http.requestMatchers().antMatchers("/lti3/**").and()
                     .addFilterBefore(lti3oAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)
-                    .authorizeRequests().anyRequest().hasRole("LTI")
-                    .and().csrf().disable().headers().frameOptions().disable();
+                    .authorizeRequests().anyRequest().permitAll().and().csrf().disable().headers().frameOptions().disable();
             //NOTE: the .headers().frameOptions().disable(); is done to work with my local sakai without https... but that should be
             // configured correctly.
 

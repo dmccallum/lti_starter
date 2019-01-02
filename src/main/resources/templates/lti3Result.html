@@ -23,7 +23,49 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 </head>
 <body>
-<p>Lti 3 was succesful and we have this: <span th:text="${lTI3Request}"/></p>
+<p>Lti 3 was succesful and we have this: </p>
+
+iss: <span th:text="${lTI3Request.iss}"/></br>
+aud: <span th:text="${lTI3Request.aud}"/></br>
+iat: <span th:text="${lTI3Request.iat}"/></br>
+exp: <span th:text="${lTI3Request.exp}"/></br>
+sub: <span th:text="${lTI3Request.sub}"/></br></br>
+
+ltiMessageType: <span th:text="${lTI3Request.ltiMessageType}"/></br>
+ltiVersion: <span th:text="${lTI3Request.ltiVersion}"/></br>
+ltiGivenName: <span th:text="${lTI3Request.ltiGivenName}"/></br>
+ltiFamilyName: <span th:text="${lTI3Request.ltiFamilyName}"/></br>
+ltiMiddleName" <span th:text="${lTI3Request.ltiMiddleName}"/></br>
+ltiPicture: <span th:text="${lTI3Request.ltiPicture}"/></br>
+ltiEmail: <span th:text="${lTI3Request.ltiEmail}"/></br>
+ltiName: <span th:text="${lTI3Request.ltiName}"/></br></br>
+
+Roles, is a list: <span th:text="${lTI3Request.ltiRoles}"/></br></br>
+
+ltiRoleScopeMentor, is a list: <span th:text="${lTI3Request.ltiRoleScopeMentor}"/></br></br>
+
+ltiResourceLink is a map <span th:text="${lTI3Request.ltiResourceLink}"/></br></br>
+
+ltiContext is a map <span th:text="${lTI3Request.ltiContext}"/></br></br>
+
+ltiToolPlatform is a map <span th:text="${lTI3Request.ltiToolPlatform}"/></br></br>
+
+ltiEndpoint is a map <span th:text="${lTI3Request.ltiEndpoint}"/></br></br>
+
+ltiNamesRoleService is a map  <span th:text="${lTI3Request.ltiNamesRoleService}"/></br></br>
+
+ltiCaliperEndpointService is a map <span th:text="${lTI3Request.ltiCaliperEndpointService}"/></br></br>
+
+
+lti11LegacyUserId: <span th:text="${lTI3Request.lti11LegacyUserId}"/></br>
+nonce: <span th:text="${lTI3Request.nonce}"/></br>
+locale: <span th:text="${lTI3Request.locale}"/></br></br>
+
+ltiLaunchPresentation is a map: <span th:text="${lTI3Request.ltiLaunchPresentation}"/></br>
+ltiExtension is a map <span th:text="${lTI3Request.ltiExtension}"/></br>
+ltiCustom is a map <span th:text="${lTI3Request.ltiCustom}"/></br></br>
+
+ltiTargetLinkUrl: <span th:text="${lTI3Request.ltiTargetLinkUrl}"/></br>
 
 </body>
 </html>

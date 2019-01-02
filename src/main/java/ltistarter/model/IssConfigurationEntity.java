@@ -39,6 +39,9 @@ public class IssConfigurationEntity extends BaseEntity {
     @Column(name = "oidc_endpoint", nullable = false, insertable = true, updatable = true)
     private String oidcEndpoint;  // Where in the platform we need to ask for the oidc authentication.
     @Basic
+    @Column(name = "deployment_id", nullable = false, insertable = true, updatable = true)
+    private String deploymentId;  // Where in the platform we need to ask for the oidc authentication.
+    @Basic
     @Column(name = "iss_public_key", nullable = false, insertable = true, updatable = true, length = 4096)
     private String issPublicKey; //Public key of the Platform
     @Basic
@@ -95,6 +98,14 @@ public class IssConfigurationEntity extends BaseEntity {
         this.issPublicKey = issPublicKey;
     }
 
+    public String getDeploymentId() {
+        return deploymentId;
+    }
+
+    public void setDeploymentId(String deploymentId) {
+        this.deploymentId = deploymentId;
+    }
+
     public boolean isUsesToolKey() {
         return usesToolKey;
     }
@@ -134,6 +145,7 @@ public class IssConfigurationEntity extends BaseEntity {
         result = 31 * result + (clientId != null ? clientId.hashCode() : 0);
         result = 31 * result + (oidcEndpoint != null ? oidcEndpoint.hashCode() : 0);
         result = 31 * result + (issPublicKey != null ? issPublicKey.hashCode() : 0);
+        result = 31 * result + (deploymentId != null ? deploymentId.hashCode() : 0);
         result = 31 * result + (toolKid != null ? toolKid.hashCode() : 0);
         result = 31 * result + (toolPublicKey != null ? toolPublicKey.hashCode() : 0);
         result = 31 * result + (toolPrivateKey != null ? toolPrivateKey.hashCode() : 0);
