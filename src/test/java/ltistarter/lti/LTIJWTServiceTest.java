@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
@@ -130,23 +131,21 @@ public class LTIJWTServiceTest extends BaseApplicationTest {
 
         Date date = new Date();
         this.state = Jwts.builder()
-                .setHeaderParam("kid","OWNKEY")  // The key id used to sign this
-                .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
-                .setSubject("subject") // We store here the platform issuer to check that matches with the issuer received later
-                .setAudience("Think about what goes here")  //TODO think about a useful value here
-                .setExpiration(DateUtils.addSeconds(date,3600)) //a java.util.Date
-                .setNotBefore(date) //a java.util.Date
-                .setIssuedAt(date) // for example, now
-                .setId("the id") //just a nounce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
-                .claim("original_iss", "https://sakai.org")  //All this claims are the information received in the OIDC initiation and some other useful things.
-                .claim("loginHint", "the login hint claim")
-                .claim("ltiMessageHint", "the ltiMessageHint claim")
-                .claim("targetLinkUri", "the targetLinkUri claim")
-                .claim("controller", "/oidc/login_initiations" )  //TODO add more things if we need it later
-                .signWith(SignatureAlgorithm.RS256, OAuthUtils.loadPrivateKey(getOwnPrivateKey()))  //We sign it
-                .compact();
-
-
+            .setHeaderParam("kid", "OWNKEY")  // The key id used to sign this
+            .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
+            .setSubject("subject") // We store here the platform issuer to check that matches with the issuer received later
+            .setAudience("Think about what goes here")  //TODO think about a useful value here
+            .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
+            .setNotBefore(date) //a java.util.Date
+            .setIssuedAt(date) // for example, now
+            .setId("the id") //just a nounce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
+            .claim("original_iss", "https://sakai.org")  //All this claims are the information received in the OIDC initiation and some other useful things.
+            .claim("loginHint", "the login hint claim")
+            .claim("ltiMessageHint", "the ltiMessageHint claim")
+            .claim("targetLinkUri", "the targetLinkUri claim")
+            .claim("controller", "/oidc/login_initiations")  //TODO add more things if we need it later
+            .signWith(SignatureAlgorithm.RS256, OAuthUtils.loadPrivateKey(getOwnPrivateKey()))  //We sign it
+            .compact();
     }
 
     @Test

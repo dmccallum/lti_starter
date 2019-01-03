@@ -35,6 +35,8 @@ import org.springframework.security.oauth2.client.token.grant.code.Authorization
 import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 
+import java.io.IOException;
+import java.math.BigInteger;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.KeyFactory;
@@ -43,10 +45,15 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Base64;
+
+import sun.security.util.DerInputStream;
+import sun.security.util.DerValue;
+
 
 /**
  * OAuth handling utils
@@ -90,13 +97,21 @@ public class OAuthUtils {
         return response;
     }
 
-    public static PrivateKey loadPrivateKey(String key) throws GeneralSecurityException {
-        String privateKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "");
-        KeyFactory kf = KeyFactory.getInstance("RSA");
-        PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
-        PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
-        return privKey;
-    }
+    /*public static PrivateKey loadPrivateKey(String key) throws GeneralSecurityException {
+        if (key.contains("BEGIN PRIVATE KEY")) {
+            String privateKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
+            PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
+            return privKey;
+        } else {
+            String privateKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN RSA PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "");
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            PKCS8EncodedKeySpec keySpecPKCS8 = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKeyContent));
+            PrivateKey privKey = kf.generatePrivate(keySpecPKCS8);
+            return privKey;
+        }
+    }*/
 
     public static RSAPublicKey loadPublicKey(String key) throws GeneralSecurityException {
         String publicKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");;
@@ -104,6 +119,58 @@ public class OAuthUtils {
         X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyContent));
         RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
         return pubKey;
+    }
+
+    public static PrivateKey loadPrivateKey(String privateKeyPem) throws GeneralSecurityException, IOException {
+        // PKCS#8 format
+        final String PEM_PRIVATE_START = "-----BEGIN PRIVATE KEY-----";
+        final String PEM_PRIVATE_END = "-----END PRIVATE KEY-----";
+
+        // PKCS#1 format
+        final String PEM_RSA_PRIVATE_START = "-----BEGIN RSA PRIVATE KEY-----";
+        final String PEM_RSA_PRIVATE_END = "-----END RSA PRIVATE KEY-----";
+
+
+        if (privateKeyPem.indexOf(PEM_PRIVATE_START) != -1) { // PKCS#8 format
+            privateKeyPem = privateKeyPem.replace(PEM_PRIVATE_START, "").replace(PEM_PRIVATE_END, "");
+            privateKeyPem = privateKeyPem.replaceAll("\\s", "");
+
+            byte[] pkcs8EncodedKey = Base64.getDecoder().decode(privateKeyPem);
+
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            return factory.generatePrivate(new PKCS8EncodedKeySpec(pkcs8EncodedKey));
+
+        } else if (privateKeyPem.indexOf(PEM_RSA_PRIVATE_START) != -1) {  // PKCS#1 format
+
+            privateKeyPem = privateKeyPem.replace(PEM_RSA_PRIVATE_START, "").replace(PEM_RSA_PRIVATE_END, "");
+            privateKeyPem = privateKeyPem.replaceAll("\\s", "");
+
+            DerInputStream derReader = new DerInputStream(Base64.getDecoder().decode(privateKeyPem));
+
+            DerValue[] seq = derReader.getSequence(0);
+
+            if (seq.length < 9) {
+                throw new GeneralSecurityException("Could not parse a PKCS1 private key.");
+            }
+
+            // skip version seq[0];
+            BigInteger modulus = seq[1].getBigInteger();
+            BigInteger publicExp = seq[2].getBigInteger();
+            BigInteger privateExp = seq[3].getBigInteger();
+            BigInteger prime1 = seq[4].getBigInteger();
+            BigInteger prime2 = seq[5].getBigInteger();
+            BigInteger exp1 = seq[6].getBigInteger();
+            BigInteger exp2 = seq[7].getBigInteger();
+            BigInteger crtCoef = seq[8].getBigInteger();
+
+            RSAPrivateCrtKeySpec keySpec = new RSAPrivateCrtKeySpec(modulus, publicExp, privateExp, prime1, prime2, exp1, exp2, crtCoef);
+
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+
+            return factory.generatePrivate(keySpec);
+        }
+
+        throw new GeneralSecurityException("Not supported format of a private key");
     }
 
 

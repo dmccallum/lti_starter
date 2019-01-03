@@ -29,6 +29,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.util.Date;
@@ -148,7 +149,7 @@ public class OIDCController extends BaseController {
                 .compact();
                 log.info("State: \n" + state + "\n");
         return state;
-        } catch (GeneralSecurityException ex){
+        } catch (GeneralSecurityException | IOException ex){
             log.error("Error generating the private key",ex);
             //TODO something better here.
             return null;
