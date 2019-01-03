@@ -39,23 +39,17 @@ public class IssConfigurationEntity extends BaseEntity {
     @Column(name = "oidc_endpoint", nullable = false, insertable = true, updatable = true)
     private String oidcEndpoint;  // Where in the platform we need to ask for the oidc authentication.
     @Basic
+    @Column(name = "JWKS_endpoint", nullable = true, insertable = true, updatable = true)
+    private String JWKSEndpoint;  // Where in the platform we need to ask for the oidc authentication.
+    @Basic
     @Column(name = "deployment_id", nullable = false, insertable = true, updatable = true)
     private String deploymentId;  // Where in the platform we need to ask for the oidc authentication.
-    @Basic
-    @Column(name = "iss_public_key", nullable = false, insertable = true, updatable = true, length = 4096)
-    private String issPublicKey; //Public key of the Platform
-    @Basic
-    @Column(name = "uses_tool_key", nullable = false, insertable = true, updatable = true)
-    private boolean usesToolKey; // if we will use a specific tool key for this platform or the default ones
     @Basic
     @Column(name = "toolKid", nullable = true, insertable = true, updatable = true)
     private String toolKid; // The tool key if number.
     @Basic
-    @Column(name = "toolPublicKey", nullable = true, insertable = true, updatable = true, length = 4096)
-    private String toolPublicKey;  // The tool public key
-    @Basic
-    @Column(name = "toolPrivateKey", nullable = true, insertable = true, updatable = true, length = 4096)
-    private String toolPrivateKey;  //The tool private key
+    @Column(name = "platformKid", nullable = true, insertable = true, updatable = true)
+    private String platformKid; // The tool key if number.
 
 
     public long getId() {
@@ -90,12 +84,12 @@ public class IssConfigurationEntity extends BaseEntity {
         this.oidcEndpoint = oidcEndpoint;
     }
 
-    public String getIssPublicKey() {
-        return issPublicKey;
+    public String getJWKSEndpoint() {
+        return JWKSEndpoint;
     }
 
-    public void setIssPublicKey(String issPublicKey) {
-        this.issPublicKey = issPublicKey;
+    public void setJWKSEndpoint(String JWKSEndpoint) {
+        this.JWKSEndpoint = JWKSEndpoint;
     }
 
     public String getDeploymentId() {
@@ -106,14 +100,6 @@ public class IssConfigurationEntity extends BaseEntity {
         this.deploymentId = deploymentId;
     }
 
-    public boolean isUsesToolKey() {
-        return usesToolKey;
-    }
-
-    public void setUsesToolKey(boolean usesToolKey) {
-        this.usesToolKey = usesToolKey;
-    }
-
     public String getToolKid() {
         return toolKid;
     }
@@ -122,20 +108,12 @@ public class IssConfigurationEntity extends BaseEntity {
         this.toolKid = toolKid;
     }
 
-    public String getToolPublicKey() {
-        return toolPublicKey;
+    public String getPlatformKid() {
+        return platformKid;
     }
 
-    public void setToolPublicKey(String toolPublicKey) {
-        this.toolPublicKey = toolPublicKey;
-    }
-
-    public String getToolPrivateKey() {
-        return toolPrivateKey;
-    }
-
-    public void setToolPrivateKey(String toolPrivateKey) {
-        this.toolPrivateKey = toolPrivateKey;
+    public void setPlatformKid(String platformKid) {
+        this.platformKid = platformKid;
     }
 
     @Override
@@ -144,11 +122,9 @@ public class IssConfigurationEntity extends BaseEntity {
         result = 31 * result + (iss != null ? iss.hashCode() : 0);
         result = 31 * result + (clientId != null ? clientId.hashCode() : 0);
         result = 31 * result + (oidcEndpoint != null ? oidcEndpoint.hashCode() : 0);
-        result = 31 * result + (issPublicKey != null ? issPublicKey.hashCode() : 0);
         result = 31 * result + (deploymentId != null ? deploymentId.hashCode() : 0);
         result = 31 * result + (toolKid != null ? toolKid.hashCode() : 0);
-        result = 31 * result + (toolPublicKey != null ? toolPublicKey.hashCode() : 0);
-        result = 31 * result + (toolPrivateKey != null ? toolPrivateKey.hashCode() : 0);
+        result = 31 * result + (platformKid != null ? platformKid.hashCode() : 0);
         return result;
     }
 }

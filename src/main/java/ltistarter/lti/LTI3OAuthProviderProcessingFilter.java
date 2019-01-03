@@ -87,17 +87,17 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             // This is not a requirement in LTI, it is just a way to do it that I've implemented, but each one can use the
             // state in a different way. It can be just an ID pointing to some DB info... it doesn't need to be JWT at all.
             String state = httpServletRequest.getParameter("state");
-            Key secretkey = ltijwtService.validateState(state);
+            Jws<Claims> jwsState= ltijwtService.validateState(state);
 
             //Once we have the state validated we have the key to check the JWT signature from the id_token,
             // and extract all the values in the LTI3Request object.
             String jwt = httpServletRequest.getParameter("id_token");
             if (StringUtils.hasText(jwt)) {
-                Jws<Claims> jws= ltijwtService.validateJWT(jwt, secretkey);
+                Jws<Claims> jws= ltijwtService.validateJWT(jwt);
                 if (jws != null) {
                     //Here we create the LTI3Request and we will add it to the httpServletRequest, so the redirect endpoint will have all that information
                     //ready and will be able to use it.
-                    LTI3Request lti3Request = new LTI3Request(httpServletRequest, ltiDataService, true, secretkey); // IllegalStateException if invalid
+                    LTI3Request lti3Request = new LTI3Request(httpServletRequest, ltiDataService, true); // IllegalStateException if invalid
                     httpServletRequest.setAttribute("LTI3", true); // indicate this request is an LTI3 one
                     httpServletRequest.setAttribute("lti3_valid", lti3Request.isLoaded() && lti3Request.isComplete()); // is LTI3 request totally valid and complete
                     httpServletRequest.setAttribute(LTI3Request.class.getName(), lti3Request); // make the LTI3 data accessible later in the request if needed

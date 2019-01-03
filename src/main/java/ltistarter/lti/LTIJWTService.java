@@ -14,35 +14,31 @@
  */
 package ltistarter.lti;
 
+import com.auth0.jwk.Jwk;
+import com.auth0.jwk.JwkException;
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwk.UrlJwkProvider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
-import ltistarter.model.BaseEntity;
+
 import ltistarter.model.IssConfigurationEntity;
-import ltistarter.model.KeyRequestEntity;
-import ltistarter.model.LtiContextEntity;
-import ltistarter.model.LtiKeyEntity;
-import ltistarter.model.LtiLinkEntity;
-import ltistarter.model.LtiMembershipEntity;
-import ltistarter.model.LtiResultEntity;
-import ltistarter.model.LtiServiceEntity;
-import ltistarter.model.LtiUserEntity;
+import ltistarter.model.RSAKeyEntity;
+import ltistarter.model.RSAKeyId;
 import ltistarter.oauth.OAuthUtils;
-import ltistarter.repository.AllRepositories;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-import javax.persistence.Query;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
-import java.util.List;
+import java.util.Optional;
 
 /**
  * This manages all the data processing for the LTIRequest (and for LTI in general)
@@ -63,20 +59,22 @@ public class LTIJWTService {
      * @return
      */
     //TODO: Add other checks like expiration of the state.
-    public Key validateState(String state) {
+    public Jws<Claims> validateState(String state) {
         try {
-            Jws<Claims> jws= Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+            return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
 
                 // This is done because each state is signed with a different key based on the issuer... so
                 // we don't know the key and we need to check it pre-extracting the claims and finding the kid
                 @Override
                 public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                    PublicKey toolPublicKey = null;
-                    IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByToolKid(header.getKeyId()).get(0);
+                    PublicKey toolPublicKey;
                     try {
                         // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                         // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                        toolPublicKey = OAuthUtils.loadPublicKey(issConfigurationEntity.getToolPublicKey());
+                        RSAKeyId rsaKeyId = new RSAKeyId("OWNKEY", true);
+                        Optional<RSAKeyEntity> rsaKeyEntity =  ltiDataService.getRepos().rsaKeys.findById(rsaKeyId);
+                        String toolPublicKeyString = rsaKeyEntity.get().getKeyKey();
+                        toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
                     } catch (GeneralSecurityException ex){
                         log.error("Error generating the tool public key",ex);
                         //TODO something better here.
@@ -87,17 +85,6 @@ public class LTIJWTService {
             }).parseClaimsJws(state);
             // If we are on this point, then the state signature has been validated. We can start other tasks now.
             // TODO: Here is the point to check other things in the state if we want it.
-            // In this case we will return the iss public key.
-            PublicKey issPublicKey = null;
-            try {
-                IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByToolKid(jws.getHeader().getKeyId()).get(0);
-                issPublicKey = OAuthUtils.loadPublicKey(issConfigurationEntity.getIssPublicKey());
-            } catch (GeneralSecurityException ex){
-                log.error("Error generating the iss public key",ex);
-                //TODO something better here.
-                return null;
-            }
-            return issPublicKey;
         } catch (SignatureException e) {
             log.info("Invalid JWT signature: " + e.getMessage());
             log.debug("Exception " + e.getMessage(), e);
@@ -105,18 +92,48 @@ public class LTIJWTService {
         }
     }
 
+
     /**
      * We will just check that it is a valid signed JWT from the issuer. The logic later will decide if we
      * want to do what is asking or not. I'm not checking permissions here, that will happen later.
-     * We could do other checks here, like expiration dates or comparing some values with the state
+     * We could do other checks here, like comparing some values with the state
      * that just make us sure about the JWT being valid...
      * @param jwt
-     * @param secretKey
      * @return
      */
-    public Jws<Claims> validateJWT(String jwt, Key secretKey) {
+    public Jws<Claims> validateJWT(String jwt) {
         try {
-            return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(jwt);
+            return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+
+                // This is done because each state is signed with a different key based on the issuer... so
+                // we don't know the key and we need to check it pre-extracting the claims and finding the kid
+                @Override
+                public Key resolveSigningKey(JwsHeader header, Claims claims) {
+                    try {
+                        // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                        // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                        IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
+
+                        if (issConfigurationEntity.getJWKSEndpoint() != null) {
+                            try {
+                                JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJWKSEndpoint());
+                                Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
+                                return jwk.getPublicKey();
+                            } catch (JwkException ex) {
+                                log.error("Error getting the iss public key", ex);
+                                //TODO something better here.
+                                return null;
+                            }
+                        } else { //TODO If not service, then try to read the key from DB
+                            return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
+                        }
+                    } catch (GeneralSecurityException ex){
+                        log.error("Error generating the tool public key",ex);
+                        //TODO something better here.
+                        return null;
+                    }
+                }
+            }).parseClaimsJws(jwt);
         } catch (SignatureException e) {
             log.info("Invalid JWT signature: " + e.getMessage());
             log.debug("Exception " + e.getMessage(), e);

@@ -14,13 +14,20 @@
  */
 package ltistarter.lti;
 
+import com.auth0.jwk.Jwk;
+import com.auth0.jwk.JwkException;
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwk.UrlJwkProvider;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SigningKeyResolverAdapter;
 import ltistarter.config.ApplicationConfig;
+import ltistarter.model.IssConfigurationEntity;
 import ltistarter.model.KeyRequestEntity;
 import ltistarter.model.LtiContextEntity;
 import ltistarter.model.LtiKeyEntity;
@@ -29,6 +36,8 @@ import ltistarter.model.LtiMembershipEntity;
 import ltistarter.model.LtiResultEntity;
 import ltistarter.model.LtiServiceEntity;
 import ltistarter.model.LtiUserEntity;
+import ltistarter.model.RSAKeyId;
+import ltistarter.oauth.OAuthUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -43,6 +52,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.util.Arrays;
 import java.util.Date;
@@ -292,10 +302,10 @@ public class LTI3Request {
     /**
      * @return the current LTI3Request object if there is one available, null if there isn't one and this is not a valid LTI3 based request
      */
-    public static synchronized LTI3Request getInstance(Key key) {
+    public static synchronized LTI3Request getInstance() {
         LTI3Request ltiRequest = null;
         try {
-            ltiRequest = getInstanceOrDie(key);
+            ltiRequest = getInstanceOrDie();
         } catch (Exception e) {
             // nothing to do here
         }
@@ -306,7 +316,7 @@ public class LTI3Request {
      * @return the current LTI3Request object if there is one available
      * @throws IllegalStateException if the LTI3Request cannot be obtained
      */
-    public static LTI3Request getInstanceOrDie(Key key) {
+    public static LTI3Request getInstanceOrDie() {
         ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest req = sra.getRequest();
         if (req == null) {
@@ -323,9 +333,9 @@ public class LTI3Request {
             }
             try {
                 if (ltiDataService != null) {
-                    ltiRequest = new LTI3Request(req, ltiDataService, true, key);
+                    ltiRequest = new LTI3Request(req, ltiDataService, true);
                 } else {
-                    ltiRequest = new LTI3Request(req, key);
+                    ltiRequest = new LTI3Request(req);
                 }
             } catch (Exception e) {
                 log.warn("Failure trying to create the LTIRequest: " + e);
@@ -341,12 +351,42 @@ public class LTI3Request {
      * @param request an http servlet request
      * @throws IllegalStateException if this is not an LTI request
      */
-    public LTI3Request(HttpServletRequest request, Key key) {
+    public LTI3Request(HttpServletRequest request) {
         assert request != null : "cannot make an LtiRequest without a request";
         this.httpServletRequest = request;
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
-        Jws<Claims> jws = Jwts.parser().setSigningKey(key).parseClaimsJws(jwt);
+        Jws<Claims> jws = Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+
+            // This is done because each state is signed with a different key based on the issuer... so
+            // we don't know the key and we need to check it pre-extracting the claims and finding the kid
+            @Override
+            public Key resolveSigningKey(JwsHeader header, Claims claims) {
+                try {
+                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                    IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
+
+                    if (issConfigurationEntity.getJWKSEndpoint() != null) {
+                        try {
+                            JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJWKSEndpoint());
+                            Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
+                            return jwk.getPublicKey();
+                        } catch (JwkException ex) {
+                            log.error("Error getting the iss public key", ex);
+                            //TODO something better here.
+                            return null;
+                        }
+                    } else { //TODO If not service, then try to read the key from DB
+                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
+                    }
+                } catch (GeneralSecurityException ex){
+                    log.error("Error generating the tool public key",ex);
+                    //TODO something better here.
+                    return null;
+                }
+            }
+        }).parseClaimsJws(jwt);
         if (!isLTI3Request(jws)) {
             throw new IllegalStateException("Request is not an LTI3 request");
         }
@@ -359,8 +399,8 @@ public class LTI3Request {
      * @param update  if true then update (or insert) the DB records for this request (else skip DB updating)
      * @throws IllegalStateException if this is not an LTI request
      */
-    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update, Key key) {
-        this(request,key);
+    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update) {
+        this(request);
         assert ltiDataService != null : "LTIDataService cannot be null";
         ltiDataService.loadLTIDataFromDB(this);
         if (update) {

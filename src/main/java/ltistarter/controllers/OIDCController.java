@@ -16,7 +16,9 @@ package ltistarter.controllers;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import ltistarter.lti.LTIDataService;
 import ltistarter.model.IssConfigurationEntity;
+import ltistarter.model.RSAKeyId;
 import ltistarter.model.dto.LoginInitiationDTO;
 import ltistarter.oauth.OAuthUtils;
 import ltistarter.repository.IssConfigurationRepository;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.GeneralSecurityException;
+import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -51,6 +54,9 @@ public class OIDCController extends BaseController {
 
     @Autowired
     IssConfigurationRepository issConfigurationRepository;
+
+    @Autowired
+    LTIDataService ltiDataService;
 
     /**
      * This will receive the request to start the OIDC process.
@@ -122,6 +128,8 @@ public class OIDCController extends BaseController {
 
         try{
         Date date = new Date();
+        Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getToolKid(),true)).get().getKeyKey());
+
         String state = Jwts.builder()
                 .setHeaderParam("kid",issConfigurationEntity.getToolKid())  // The key id used to sign this
                 .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
@@ -131,12 +139,12 @@ public class OIDCController extends BaseController {
                 .setNotBefore(date) //a java.util.Date
                 .setIssuedAt(date) // for example, now
                 .setId(authRequestMap.get("nounce")) //just a nounce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
-                .claim("iss", loginInitiationDTO.getIss())  //All this claims are the information received in the OIDC initiation and some other useful things.
+                .claim("original_iss", loginInitiationDTO.getIss())  //All this claims are the information received in the OIDC initiation and some other useful things.
                 .claim("loginHint", loginInitiationDTO.getLoginHint())
                 .claim("ltiMessageHint", loginInitiationDTO.getLtiMessageHint())
                 .claim("targetLinkUri", loginInitiationDTO.getTargetLinkUri())
                 .claim("controller", "/oidc/login_initiations" )  //TODO add more things if we need it later
-                .signWith(SignatureAlgorithm.RS256, OAuthUtils.loadPrivateKey(issConfigurationEntity.getToolPrivateKey()))  //We sign it
+                .signWith(SignatureAlgorithm.RS256, issPrivateKey)  //We sign it
                 .compact();
                 log.info("State: \n" + state + "\n");
         return state;

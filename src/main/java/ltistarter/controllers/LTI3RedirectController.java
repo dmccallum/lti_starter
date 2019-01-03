@@ -14,6 +14,8 @@
  */
 package ltistarter.controllers;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import ltistarter.lti.LTI3Request;
 import ltistarter.lti.LTIJWTService;
 import ltistarter.lti.LTIRequest;
@@ -41,8 +43,9 @@ public class LTI3RedirectController extends BaseController {
     public String home(HttpServletRequest req, Principal principal, Model model) {
 
         String state = req.getParameter("state");
-        Key key = ltijwtService.validateState(state);
-        LTI3Request lti3Request = LTI3Request.getInstance(key);
+        Jws<Claims> jwsState = ltijwtService.validateState(state);
+
+        LTI3Request lti3Request = LTI3Request.getInstance();
         model.addAttribute("lTI3Request",lti3Request);
         return "lti3Result"; // name of the template
     }

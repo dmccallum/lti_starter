@@ -43,6 +43,9 @@ public class AllRepositories {
     public LtiKeyRepository keys;
 
     @Autowired
+    public RSAKeyRepository rsaKeys;
+
+    @Autowired
     public LtiLinkRepository links;
 
     @Autowired

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Unicon (R)
+ * Copyright 2014 Unicon (R)
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,21 +14,17 @@
  */
 package ltistarter.repository;
 
-import ltistarter.model.IssConfigurationEntity;
-import ltistarter.model.KeyRequestEntity;
+import ltistarter.model.LtiKeyEntity;
+import ltistarter.model.RSAKeyEntity;
+import ltistarter.model.RSAKeyId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.util.Optional;
 
+/**
+ * NOTE: use of this interface magic makes all subclass-based (CGLIB) proxies fail
+ */
 @Transactional
-public interface IssConfigurationRepository extends JpaRepository<IssConfigurationEntity, Long> {
-
-    List<IssConfigurationEntity> findByIss(String iss);
-
-    List<IssConfigurationEntity> findByClientId(String clientId);
-
-    List<IssConfigurationEntity> findByToolKid(String keyId);
-
-    List<IssConfigurationEntity> findByPlatformKid(String keyId);
+public interface RSAKeyRepository extends JpaRepository<RSAKeyEntity, RSAKeyId> {
 }
