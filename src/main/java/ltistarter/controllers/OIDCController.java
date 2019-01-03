@@ -129,10 +129,10 @@ public class OIDCController extends BaseController {
 
         try{
         Date date = new Date();
-        Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getToolKid(),true)).get().getKeyKey());
+        Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId("OWNKEY",true)).get().getPrivateKeyKey());
 
         String state = Jwts.builder()
-                .setHeaderParam("kid",issConfigurationEntity.getToolKid())  // The key id used to sign this
+                .setHeaderParam("kid","OWNKEY")  // The key id used to sign this
                 .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
                 .setSubject(issConfigurationEntity.getIss()) // We store here the platform issuer to check that matches with the issuer received later
                 .setAudience("Think about what goes here")  //TODO think about a useful value here

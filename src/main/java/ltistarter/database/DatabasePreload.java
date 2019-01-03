@@ -145,9 +145,10 @@ public class DatabasePreload {
             IssConfigurationEntity iss3 = new IssConfigurationEntity();
             iss3.setClientId("imstestuser");
             iss3.setIss("ltiadv-cert.imsglobal.org");
-            iss3.setJWKSEndpoint("https://oauth2server.imsglobal.org/jwks");
+            iss3.setJwksEndpoint("https://oauth2server.imsglobal.org/jwks");
             String iss3PublicKey = "";
             iss3.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthentication.html");
+            iss3.setoAuth2TokenUrl("https://oauth2server.imsglobal.org/oauth2server/authcodejwt");
             iss3.setDeploymentId("testdeploy");
             iss3.setToolKid("imstester_4");
             iss3.setPlatformKid("imstester_4");

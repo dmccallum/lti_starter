@@ -111,6 +111,9 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             log.info("Security exception for user {} - {}", eje.getClaims().getSubject(), eje.getMessage());
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
+        } catch (SignatureException ex) {
+            log.info("Error checking the signature");
+            ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 

@@ -59,37 +59,31 @@ public class LTIJWTService {
      * @return
      */
     //TODO: Add other checks like expiration of the state.
-    public Jws<Claims> validateState(String state) {
-        try {
-            return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
-
+    public Jws<Claims> validateState(String state) throws SignatureException {
+        return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
                 // This is done because each state is signed with a different key based on the issuer... so
                 // we don't know the key and we need to check it pre-extracting the claims and finding the kid
                 @Override
                 public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                    PublicKey toolPublicKey;
-                    try {
-                        // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                        // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                        RSAKeyId rsaKeyId = new RSAKeyId("OWNKEY", true);
-                        Optional<RSAKeyEntity> rsaKeyEntity =  ltiDataService.getRepos().rsaKeys.findById(rsaKeyId);
-                        String toolPublicKeyString = rsaKeyEntity.get().getKeyKey();
-                        toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
-                    } catch (GeneralSecurityException ex){
-                        log.error("Error generating the tool public key",ex);
-                        //TODO something better here.
-                        return null;
-                    }
-                    return toolPublicKey;
+                PublicKey toolPublicKey;
+                try {
+                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                    RSAKeyId rsaKeyId = new RSAKeyId("OWNKEY", true);
+                    Optional<RSAKeyEntity> rsaKeyEntity =  ltiDataService.getRepos().rsaKeys.findById(rsaKeyId);
+                    String toolPublicKeyString = rsaKeyEntity.get().getKeyKey();
+                    toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
+                } catch (GeneralSecurityException ex){
+                    log.error("Error generating the tool public key",ex);
+                    //TODO something better here.
+                    return null;
                 }
-            }).parseClaimsJws(state);
-            // If we are on this point, then the state signature has been validated. We can start other tasks now.
-            // TODO: Here is the point to check other things in the state if we want it.
-        } catch (SignatureException e) {
-            log.info("Invalid JWT signature: " + e.getMessage());
-            log.debug("Exception " + e.getMessage(), e);
-            return null;
-        }
+                return toolPublicKey;
+            }
+        }).parseClaimsJws(state);
+        // If we are on this point, then the state signature has been validated. We can start other tasks now.
+        // TODO: Here is the point to check other things in the state if we want it.
+
     }
 
 
@@ -114,9 +108,9 @@ public class LTIJWTService {
                         // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
                         IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
 
-                        if (issConfigurationEntity.getJWKSEndpoint() != null) {
+                        if (issConfigurationEntity.getJwksEndpoint() != null) {
                             try {
-                                JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJWKSEndpoint());
+                                JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
                                 Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
                                 return jwk.getPublicKey();
                             } catch (JwkException ex) {

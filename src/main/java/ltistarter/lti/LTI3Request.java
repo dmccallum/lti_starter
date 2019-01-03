@@ -28,7 +28,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import ltistarter.config.ApplicationConfig;
 import ltistarter.model.IssConfigurationEntity;
-import ltistarter.model.KeyRequestEntity;
 import ltistarter.model.LtiContextEntity;
 import ltistarter.model.LtiKeyEntity;
 import ltistarter.model.LtiLinkEntity;
@@ -38,30 +37,23 @@ import ltistarter.model.LtiServiceEntity;
 import ltistarter.model.LtiUserEntity;
 import ltistarter.model.RSAKeyId;
 import ltistarter.oauth.OAuthUtils;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.Key;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * LTI3 Request object holds all the details for a valid LTI3 request
@@ -367,9 +359,9 @@ public class LTI3Request {
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
                     IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
 
-                    if (issConfigurationEntity.getJWKSEndpoint() != null) {
+                    if (issConfigurationEntity.getJwksEndpoint() != null) {
                         try {
-                            JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJWKSEndpoint());
+                            JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
                             Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
                             return jwk.getPublicKey();
                         } catch (JwkException ex) {

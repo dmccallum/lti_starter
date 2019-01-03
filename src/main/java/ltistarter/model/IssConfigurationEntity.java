@@ -39,8 +39,11 @@ public class IssConfigurationEntity extends BaseEntity {
     @Column(name = "oidc_endpoint", nullable = false, insertable = true, updatable = true)
     private String oidcEndpoint;  // Where in the platform we need to ask for the oidc authentication.
     @Basic
-    @Column(name = "JWKS_endpoint", nullable = true, insertable = true, updatable = true)
-    private String JWKSEndpoint;  // Where in the platform we need to ask for the oidc authentication.
+    @Column(name = "jwks_endpoint", nullable = true, insertable = true, updatable = true)
+    private String jwksEndpoint;  // Where in the platform we need to ask for the keys.
+    @Basic
+    @Column(name = "oAuth2_token_url", nullable = true, insertable = true, updatable = true)
+    private String oAuth2TokenUrl;  // Where in the platform we need to ask for the oauth2 tokens
     @Basic
     @Column(name = "deployment_id", nullable = false, insertable = true, updatable = true)
     private String deploymentId;  // Where in the platform we need to ask for the oidc authentication.
@@ -84,12 +87,20 @@ public class IssConfigurationEntity extends BaseEntity {
         this.oidcEndpoint = oidcEndpoint;
     }
 
-    public String getJWKSEndpoint() {
-        return JWKSEndpoint;
+    public String getJwksEndpoint() {
+        return jwksEndpoint;
     }
 
-    public void setJWKSEndpoint(String JWKSEndpoint) {
-        this.JWKSEndpoint = JWKSEndpoint;
+    public void setJwksEndpoint(String jwksEndpoint) {
+        this.jwksEndpoint = jwksEndpoint;
+    }
+
+    public String getoAuth2TokenUrl() {
+        return oAuth2TokenUrl;
+    }
+
+    public void setoAuth2TokenUrl(String oAuth2TokenUrl) {
+        this.oAuth2TokenUrl = oAuth2TokenUrl;
     }
 
     public String getDeploymentId() {
@@ -122,6 +133,7 @@ public class IssConfigurationEntity extends BaseEntity {
         result = 31 * result + (iss != null ? iss.hashCode() : 0);
         result = 31 * result + (clientId != null ? clientId.hashCode() : 0);
         result = 31 * result + (oidcEndpoint != null ? oidcEndpoint.hashCode() : 0);
+        result = 31 * result + (oAuth2TokenUrl != null ? oAuth2TokenUrl.hashCode() : 0);
         result = 31 * result + (deploymentId != null ? deploymentId.hashCode() : 0);
         result = 31 * result + (toolKid != null ? toolKid.hashCode() : 0);
         result = 31 * result + (platformKid != null ? platformKid.hashCode() : 0);
