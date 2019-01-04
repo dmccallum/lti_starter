@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Unicon (R)
+ * Copyright 2014 Unicon (R)
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -147,7 +147,8 @@ public class DatabasePreload {
             iss3.setIss("ltiadv-cert.imsglobal.org");
             iss3.setJwksEndpoint("https://oauth2server.imsglobal.org/jwks");
             String iss3PublicKey = "";
-            iss3.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthentication.html");
+            iss3.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
+            iss3.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
             iss3.setoAuth2TokenUrl("https://oauth2server.imsglobal.org/oauth2server/authcodejwt");
             iss3.setDeploymentId("testdeploy");
             iss3.setToolKid("imstester_4");

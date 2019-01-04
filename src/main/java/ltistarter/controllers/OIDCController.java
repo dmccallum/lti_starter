@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Unicon (R)
+ * Copyright 2014 Unicon (R)
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -82,9 +82,15 @@ public class OIDCController extends BaseController {
         } else {
             // If we have more than one configuration for the same iss, at this moment we don't know about the client id, so we just pick the first one
             IssConfigurationEntity issConfigurationEntity = issConfigurationEntityList.get(0);
-            Map<String, String> parameters = generateAuthRequestPayload(issConfigurationEntity,loginInitiationDTO);
-            model.addAllAttributes(parameters);
-            return "oicdRedirect";
+            try {
+                Map<String, String> parameters = generateAuthRequestPayload(issConfigurationEntity, loginInitiationDTO);
+                model.addAllAttributes(parameters);
+                return "oicdRedirect";
+            } catch (Exception ex) {
+                model.addAttribute("Error", ex.getMessage());
+                return "lti3Error";
+            }
+
         }
     }
 
@@ -95,7 +101,7 @@ public class OIDCController extends BaseController {
      * @param loginInitiationDTO
      * @return
      */
-    private Map<String, String> generateAuthRequestPayload (IssConfigurationEntity issConfigurationEntity, LoginInitiationDTO loginInitiationDTO) {
+    private Map<String, String> generateAuthRequestPayload (IssConfigurationEntity issConfigurationEntity, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
 
         Map<String, String> authRequestMap =  new HashMap<>();
         authRequestMap.put("client_id",issConfigurationEntity.getClientId()); //As it came from the Platform
@@ -125,9 +131,8 @@ public class OIDCController extends BaseController {
      * @param loginInitiationDTO
      * @return
      */
-    private String generateState(IssConfigurationEntity issConfigurationEntity, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO) {
+    private String generateState(IssConfigurationEntity issConfigurationEntity, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
 
-        try{
         Date date = new Date();
         Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId("OWNKEY",true)).get().getPrivateKeyKey());
 
@@ -144,16 +149,11 @@ public class OIDCController extends BaseController {
                 .claim("loginHint", loginInitiationDTO.getLoginHint())
                 .claim("ltiMessageHint", loginInitiationDTO.getLtiMessageHint())
                 .claim("targetLinkUri", loginInitiationDTO.getTargetLinkUri())
-                .claim("controller", "/oidc/login_initiations" )  //TODO add more things if we need it later
+                .claim("controller", "/oidc/login_initiations" )
                 .signWith(SignatureAlgorithm.RS256, issPrivateKey)  //We sign it
                 .compact();
                 log.info("State: \n" + state + "\n");
         return state;
-        } catch (GeneralSecurityException | IOException ex){
-            log.error("Error generating the private key",ex);
-            //TODO something better here.
-            return null;
-        }
     }
 
     /**

@@ -14,10 +14,16 @@
  */
 package ltistarter.lti;
 
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkException;
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
+//import com.auth0.jwk.Jwk;
+//import com.auth0.jwk.JwkException;
+//import com.auth0.jwk.JwkProvider;
+//import com.auth0.jwk.UrlJwkProvider;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.AsymmetricJWK;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
@@ -33,11 +39,17 @@ import ltistarter.oauth.OAuthUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.oauth2.provider.token.store.jwk.JwkException;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
+import java.text.ParseException;
 import java.util.Optional;
 
 /**
@@ -75,7 +87,6 @@ public class LTIJWTService {
                     toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
                 } catch (GeneralSecurityException ex){
                     log.error("Error generating the tool public key",ex);
-                    //TODO something better here.
                     return null;
                 }
                 return toolPublicKey;
@@ -110,20 +121,27 @@ public class LTIJWTService {
 
                         if (issConfigurationEntity.getJwksEndpoint() != null) {
                             try {
-                                JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
-                                Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
-                                return jwk.getPublicKey();
-                            } catch (JwkException ex) {
+                                JWKSet publicKeys = JWKSet.load(new URL(issConfigurationEntity.getJwksEndpoint()));
+                                //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
+                                //JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
+                                //Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
+                                 JWK jwk = publicKeys.getKeyByKeyId(issConfigurationEntity.getPlatformKid());
+                                 return ((AsymmetricJWK) jwk).toPublicKey();
+                            } catch (JOSEException ex) {
                                 log.error("Error getting the iss public key", ex);
-                                //TODO something better here.
+                                return null;
+                            } catch (ParseException | IOException ex) {
+                                log.error("Error getting the iss public key", ex);
                                 return null;
                             }
-                        } else { //TODO If not service, then try to read the key from DB
+                        } else {
                             return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
                         }
                     } catch (GeneralSecurityException ex){
                         log.error("Error generating the tool public key",ex);
-                        //TODO something better here.
+                        return null;
+                    } catch (IndexOutOfBoundsException ex){
+                        log.error("Kid not found in header",ex);
                         return null;
                     }
                 }

@@ -14,10 +14,16 @@
  */
 package ltistarter.lti;
 
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkException;
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
+//import com.auth0.jwk.Jwk;
+//import com.auth0.jwk.JwkException;
+//import com.auth0.jwk.JwkProvider;
+//import com.auth0.jwk.UrlJwkProvider;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.AsymmetricJWK;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,14 +47,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.oauth2.provider.token.store.jwk.JwkException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.Key;
+import java.security.PublicKey;
+import java.text.ParseException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -217,6 +228,7 @@ public class LTI3Request {
     //ProfileEntity profile;
     boolean loaded = false;
     boolean complete = false;
+    boolean correct = false;
     boolean updated = false;
     int loadingUpdates = 0;
 
@@ -299,7 +311,7 @@ public class LTI3Request {
         try {
             ltiRequest = getInstanceOrDie();
         } catch (Exception e) {
-            // nothing to do here
+            //Nothing to do here
         }
         return ltiRequest;
     }
@@ -308,7 +320,7 @@ public class LTI3Request {
      * @return the current LTI3Request object if there is one available
      * @throws IllegalStateException if the LTI3Request cannot be obtained
      */
-    public static LTI3Request getInstanceOrDie() {
+    public static LTI3Request getInstanceOrDie() throws IllegalStateException {
         ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest req = sra.getRequest();
         if (req == null) {
@@ -326,8 +338,8 @@ public class LTI3Request {
             try {
                 if (ltiDataService != null) {
                     ltiRequest = new LTI3Request(req, ltiDataService, true);
-                } else {
-                    ltiRequest = new LTI3Request(req);
+                } else { //THIS SHOULD NOT HAPPEN
+                    throw new IllegalStateException("Error internal, no Dataservice available: " + req);
                 }
             } catch (Exception e) {
                 log.warn("Failure trying to create the LTIRequest: " + e);
@@ -341,10 +353,14 @@ public class LTI3Request {
 
     /**
      * @param request an http servlet request
+     * @param ltiDataService   the service used for accessing LTI data
+     * @param update  if true then update (or insert) the DB records for this request (else skip DB updating)
      * @throws IllegalStateException if this is not an LTI request
      */
-    public LTI3Request(HttpServletRequest request) {
+    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update) throws IllegalStateException {
         assert request != null : "cannot make an LtiRequest without a request";
+        assert ltiDataService != null : "LTIDataService cannot be null";
+        this.ltiDataService = ltiDataService;
         this.httpServletRequest = request;
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
@@ -361,20 +377,23 @@ public class LTI3Request {
 
                     if (issConfigurationEntity.getJwksEndpoint() != null) {
                         try {
-                            JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
-                            Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
-                            return jwk.getPublicKey();
-                        } catch (JwkException ex) {
+                            JWKSet publicKeys = JWKSet.load(new URL(issConfigurationEntity.getJwksEndpoint()));
+                            //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
+                            JWK jwk = publicKeys.getKeyByKeyId(issConfigurationEntity.getPlatformKid());
+                            PublicKey key = ((AsymmetricJWK) jwk).toPublicKey();
+                            return key;
+                        } catch (JOSEException ex) {
                             log.error("Error getting the iss public key", ex);
-                            //TODO something better here.
+                            return null;
+                        } catch (ParseException | IOException ex) {
+                            log.error("Error getting the iss public key", ex);
                             return null;
                         }
-                    } else { //TODO If not service, then try to read the key from DB
+                    } else {
                         return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
                     }
                 } catch (GeneralSecurityException ex){
                     log.error("Error generating the tool public key",ex);
-                    //TODO something better here.
                     return null;
                 }
             }
@@ -383,22 +402,11 @@ public class LTI3Request {
             throw new IllegalStateException("Request is not an LTI3 request");
         }
         processRequestParameters(request,jws);
-    }
 
-    /**
-     * @param request an http servlet request
-     * @param ltiDataService   the service used for accessing LTI data
-     * @param update  if true then update (or insert) the DB records for this request (else skip DB updating)
-     * @throws IllegalStateException if this is not an LTI request
-     */
-    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update) {
-        this(request);
-        assert ltiDataService != null : "LTIDataService cannot be null";
         ltiDataService.loadLTIDataFromDB(this);
         if (update) {
             ltiDataService.updateLTIDataInDB(this);
         }
-        this.ltiDataService = ltiDataService;
     }
 
     /**
@@ -417,7 +425,7 @@ public class LTI3Request {
      * Processes all the parameters in this request into populated internal variables in the LTI Request
      *
      * @param request an http servlet request
-     * @return true if this is a complete LTI request (includes key, context, link, user) OR false otherwise
+     * @return true if this is a complete and correct LTI request (includes key, context, link, user) OR false otherwise
      */
     //This is what we will need to change....
     public boolean processRequestParameters(HttpServletRequest request, Jws<Claims> jws) {
@@ -519,7 +527,10 @@ public class LTI3Request {
         ltiGivenName = jws.getBody().getOrDefault(LTI_GIVEN_NAME, null).toString();
         ltiFamilyName = jws.getBody().getOrDefault(LTI_FAMILY_NAME, null).toString();
         ltiMiddleName = jws.getBody().getOrDefault(LTI_MIDDLE_NAME, null).toString();
-        ltiPicture = jws.getBody().getOrDefault(LTI_PICTURE, null).toString();
+        //TODO add the "if" in the optional values, leave without if and capture the null point exception.
+        if (jws.getBody().containsKey(LTI_PICTURE)) {
+            ltiPicture = jws.getBody().getOrDefault(LTI_PICTURE, null).toString();
+        }
         ltiEmail = jws.getBody().getOrDefault(LTI_EMAIL, null).toString();
         ltiName = jws.getBody().getOrDefault(LTI_NAME, null).toString();
 
@@ -599,14 +610,16 @@ public class LTI3Request {
         ltiTargetLinkUrl = jws.getBody().getOrDefault(LTI_TARGET_LINK_URI, null).toString();
 
 
+
         complete = checkCompleteLTIRequest(false);
+        correct = checkCorrectLTIRequest(false);
 
         // A sample that shows how we can store some of this in the session
         HttpSession session = this.httpServletRequest.getSession();
         //session.setAttribute(LTI_USER_ID, ltiUserId);
         session.setAttribute(LTI_CONTEXT_ID, ltiContextId);
 
-        return complete;
+        return complete && correct;
     }
 
     /**
@@ -619,6 +632,13 @@ public class LTI3Request {
     //TODO update this to check the really complete conditions...!
 
     protected boolean checkCompleteLTIRequest(boolean objects) {
+
+        // Check if we have the roles
+        // Check if we have the deployment_id
+        // Required resource_link Claim
+        // User (sub) Claim
+        // Test Launches Instructor With Only Email - Without Context ???
+
         if (objects && context != null && link != null ) {
             complete = true;
         } else if (!objects && ltiContextId != null && ltiLinkId != null ) {
@@ -627,6 +647,24 @@ public class LTI3Request {
             complete = false;
         }
         return complete;
+    }
+
+    /**
+     * Checks if this LTI3 request object has correct values
+     *
+     * @param objects if true then check for complete objects, else just check for complete request params
+     * @return true if complete
+     */
+    //TODO update this to check the really complete conditions...!
+
+    protected boolean checkCorrectLTIRequest(boolean objects) {
+
+        //TODO check things as:
+        // JWT with Bad Timestamp Values
+        // Roles are correct roles
+        //
+
+        return correct;
     }
 
     // STATICS

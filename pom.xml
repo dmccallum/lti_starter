@@ -134,11 +134,16 @@
       <artifactId>jjwt</artifactId>
       <version>0.9.1</version>
     </dependency>
-    <dependency>
+    <!--<dependency>
        <groupId>com.auth0</groupId>
        <artifactId>jwks-rsa</artifactId>
        <version>0.6.1</version>
-    </dependency>
+    </dependency>-->
+      <dependency>
+          <groupId>com.nimbusds</groupId>
+          <artifactId>nimbus-jose-jwt</artifactId>
+          <version>6.5.1</version>
+      </dependency>
 
     <dependency>
       <groupId>org.springframework.boot</groupId>
