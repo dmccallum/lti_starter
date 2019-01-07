@@ -14,11 +14,6 @@
  */
 package ltistarter.lti;
 
-//import com.auth0.jwk.Jwk;
-//import com.auth0.jwk.JwkException;
-//import com.auth0.jwk.JwkProvider;
-//import com.auth0.jwk.UrlJwkProvider;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -39,12 +34,9 @@ import ltistarter.oauth.OAuthUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.provider.token.store.jwk.JwkException;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.Key;
@@ -63,6 +55,8 @@ public class LTIJWTService {
 
     @Autowired
     LTIDataService ltiDataService;
+
+    String error;
 
     /**
      * This will check that the state has been signed by us and retrieve the issuer private key.
@@ -86,7 +80,7 @@ public class LTIJWTService {
                     String toolPublicKeyString = rsaKeyEntity.get().getKeyKey();
                     toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
                 } catch (GeneralSecurityException ex){
-                    log.error("Error generating the tool public key",ex);
+                    log.error("Error validating the state. Error generating the tool public key",ex);
                     return null;
                 }
                 return toolPublicKey;
@@ -106,51 +100,46 @@ public class LTIJWTService {
      * @param jwt
      * @return
      */
-    public Jws<Claims> validateJWT(String jwt) {
-        try {
-            return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+    public Jws<Claims> validateJWT(String jwt) throws SignatureException {
 
-                // This is done because each state is signed with a different key based on the issuer... so
-                // we don't know the key and we need to check it pre-extracting the claims and finding the kid
-                @Override
-                public Key resolveSigningKey(JwsHeader header, Claims claims) {
-                    try {
-                        // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
-                        // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                        IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
+        return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
 
-                        if (issConfigurationEntity.getJwksEndpoint() != null) {
-                            try {
-                                JWKSet publicKeys = JWKSet.load(new URL(issConfigurationEntity.getJwksEndpoint()));
-                                //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
-                                //JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
-                                //Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
-                                 JWK jwk = publicKeys.getKeyByKeyId(issConfigurationEntity.getPlatformKid());
-                                 return ((AsymmetricJWK) jwk).toPublicKey();
-                            } catch (JOSEException ex) {
-                                log.error("Error getting the iss public key", ex);
-                                return null;
-                            } catch (ParseException | IOException ex) {
-                                log.error("Error getting the iss public key", ex);
-                                return null;
-                            }
-                        } else {
-                            return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
+            // This is done because each state is signed with a different key based on the issuer... so
+            // we don't know the key and we need to check it pre-extracting the claims and finding the kid
+            @Override
+            public Key resolveSigningKey(JwsHeader header, Claims claims) {
+                try {
+                    // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
+                    // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
+                    IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
+
+                    if (issConfigurationEntity.getJwksEndpoint() != null) {
+                        try {
+                            JWKSet publicKeys = JWKSet.load(new URL(issConfigurationEntity.getJwksEndpoint()));
+                            //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
+                            //JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
+                            //Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
+                             JWK jwk = publicKeys.getKeyByKeyId(issConfigurationEntity.getPlatformKid());
+                             return ((AsymmetricJWK) jwk).toPublicKey();
+                        } catch (JOSEException ex) {
+                            log.error("Error getting the iss public key", ex);
+                            return null;
+                        } catch (ParseException | IOException ex) {
+                            log.error("Error getting the iss public key", ex);
+                            return null;
                         }
-                    } catch (GeneralSecurityException ex){
-                        log.error("Error generating the tool public key",ex);
-                        return null;
-                    } catch (IndexOutOfBoundsException ex){
-                        log.error("Kid not found in header",ex);
-                        return null;
+                    } else {
+                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
                     }
+                } catch (GeneralSecurityException ex){
+                    log.error("Error generating the tool public key",ex);
+                    return null;
+                } catch (IndexOutOfBoundsException ex){
+                    log.error("Kid not found in header",ex);
+                    return null;
                 }
-            }).parseClaimsJws(jwt);
-        } catch (SignatureException e) {
-            log.info("Invalid JWT signature: " + e.getMessage());
-            log.debug("Exception " + e.getMessage(), e);
-            return null;
-        }
+            }
+        }).parseClaimsJws(jwt);
     }
 
 }

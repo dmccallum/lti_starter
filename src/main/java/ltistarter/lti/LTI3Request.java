@@ -14,11 +14,6 @@
  */
 package ltistarter.lti;
 
-//import com.auth0.jwk.Jwk;
-//import com.auth0.jwk.JwkException;
-//import com.auth0.jwk.JwkProvider;
-//import com.auth0.jwk.UrlJwkProvider;
-
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
@@ -47,13 +42,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.provider.token.store.jwk.JwkException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.GeneralSecurityException;
@@ -236,6 +229,7 @@ public class LTI3Request {
 
     String ltiMessageType;
     String ltiVersion;
+    String ltiDeploymentId;
 
     String ltiGivenName;
     String ltiFamilyName;
@@ -292,8 +286,8 @@ public class LTI3Request {
 
     Map<String, Object> ltiLaunchPresentation;
     String ltiPresTarget;
-    int ltiPresWidth;
-    int ltiPresHeight;
+    Integer ltiPresWidth;
+    Integer ltiPresHeight;
     String ltiPresReturnUrl;
     Locale ltiPresLocale;
 
@@ -398,10 +392,14 @@ public class LTI3Request {
                 }
             }
         }).parseClaimsJws(jwt);
-        if (!isLTI3Request(jws)) {
-            throw new IllegalStateException("Request is not an LTI3 request");
+        String isLTI3Request = isLTI3Request(jws);
+        if (!isLTI3Request.equals("true")) {
+            throw new IllegalStateException("Request is not a valid LTI3 request: " + isLTI3Request);
         }
-        processRequestParameters(request,jws);
+        String processRequestParameters = processRequestParameters(request,jws);
+        if (!processRequestParameters.equals("true")){
+            throw new IllegalStateException("Request is not a valid LTI3 request: " + processRequestParameters);
+        };
 
         ltiDataService.loadLTIDataFromDB(this);
         if (update) {
@@ -428,157 +426,73 @@ public class LTI3Request {
      * @return true if this is a complete and correct LTI request (includes key, context, link, user) OR false otherwise
      */
     //This is what we will need to change....
-    public boolean processRequestParameters(HttpServletRequest request, Jws<Claims> jws) {
+    public String processRequestParameters(HttpServletRequest request, Jws<Claims> jws) {
+
         if (request != null && this.httpServletRequest != request) {
             this.httpServletRequest = request;
         }
         assert this.httpServletRequest != null;
 
-        /*
-{
-  "https://purl.imsglobal.org/spec/lti/claim/message_type": "LtiResourceLinkRequest",
-  "given_name": "Charley",
-  "family_name": "Langosh",
-  "middle_name": "Claris",
-  "picture": "http://example.org/Charley.jpg",
-  "email": "Charley.Langosh@example.org",
-  "name": "Charley Claris Langosh",
-  "https://purl.imsglobal.org/spec/lti/claim/roles": [
-    "http://purl.imsglobal.org/vocab/lis/v2/membership#Learner",
-    "http://purl.imsglobal.org/vocab/lis/v2/institution/person#Student",
-    "http://purl.imsglobal.org/vocab/lis/v2/membership#Mentor"
-  ],
-  "https://purl.imsglobal.org/spec/lti/claim/role_scope_mentor": [
-    "a62c52c02ba262003f5e"
-  ],
-  "https://purl.imsglobal.org/spec/lti/claim/resource_link": {
-    "id": "563",
-    "title": "This is a resource link",
-    "description": "The same than in the title"
-  },
-  "https://purl.imsglobal.org/spec/lti/claim/context": {
-    "id": "115",
-    "label": "How to learn LTI, but this is the label",
-    "title": "How to learn LTI",
-    "type": [
-      "CourseOffering"
-    ]
-  },
-  "https://purl.imsglobal.org/spec/lti/claim/tool_platform": {
-    "name": "Test",
-    "contact_email": "",
-    "description": "",
-    "url": "",
-    "product_family_code": "",
-    "version": "1.0"
-  },
-  "https://purl.imsglobal.org/spec/lti-ags/claim/endpoint": {
-    "scope": [
-      "https://purl.imsglobal.org/spec/lti-ags/scope/lineitem",
-      "https://purl.imsglobal.org/spec/lti-ags/scope/result.readonly",
-      "https://purl.imsglobal.org/spec/lti-ags/scope/score"
-    ],
-    "lineitems": "https://lti-ri.imsglobal.org/platforms/89/contexts/115/line_items"
-  },
-  "https://purl.imsglobal.org/spec/lti-nrps/claim/namesroleservice": {
-    "context_memberships_url": "https://lti-ri.imsglobal.org/platforms/89/contexts/115/memberships",
-    "service_versions": [
-      "2.0"
-    ]
-  },
-  "https://purl.imsglobal.org/spec/lti-ces/claim/caliper-endpoint-service": {
-    "scopes": [
-      "https://purl.imsglobal.org/spec/lti-ces/v1p0/scope/send"
-    ],
-    "caliper_endpoint_url": "https://lti-ri.imsglobal.org/platforms/89/sensors",
-    "caliper_federated_session_id": "urn:uuid:d02afaf25974c0653bbc"
-  },
-  "iss": "https://sakai.org",
-  "aud": "Ddbo123456",
-  "iat": 1546015591,
-  "exp": 1546015891,
-  "sub": "9b063762698c1b77c955",
-  "https://purl.imsglobal.org/spec/lti/claim/lti11_legacy_user_id": "9b063762698c1b77c955",
-  "nonce": "c2339a10a2449deec455",
-  "https://purl.imsglobal.org/spec/lti/claim/version": "1.3.0",
-  "locale": "en-US",
-  "https://purl.imsglobal.org/spec/lti/claim/launch_presentation": {
-    "document_target": "iframe",
-    "height": 320,
-    "width": 240,
-    "return_url": "https://lti-ri.imsglobal.org/platforms/89/returns"
-  },
-  "https://www.example.com/extension": {
-    "color": "violet"
-  },
-  "https://purl.imsglobal.org/spec/lti/claim/custom": {
-    "acolor": "blue",
-    "color_count": 2
-  },
-  "https://purl.imsglobal.org/spec/lti/claim/target_link_uri": "https://localhost:9090/lti3"
-} */
+        //First we get all the possible values, and we set null in the ones empty.
+        // Later we will review those values to check if the request is valid or not.
 
+        ltiMessageType = getStringFromLTIRequest(jws,LTI_MESSAGE_TYPE);
+        ltiVersion = getStringFromLTIRequest(jws,LTI_VERSION);
+        ltiDeploymentId = getStringFromLTIRequest(jws,LTI_DEPLOYMENT_ID);
 
+        ltiGivenName = getStringFromLTIRequest(jws,LTI_GIVEN_NAME);
+        ltiFamilyName = getStringFromLTIRequest(jws,LTI_FAMILY_NAME);
+        ltiMiddleName = getStringFromLTIRequest(jws,LTI_MIDDLE_NAME);
+        ltiPicture = getStringFromLTIRequest(jws,LTI_PICTURE);
 
+        ltiEmail = getStringFromLTIRequest(jws,LTI_EMAIL);
+        ltiName = getStringFromLTIRequest(jws,LTI_NAME);
 
-        ltiMessageType = jws.getBody().getOrDefault(LTI_MESSAGE_TYPE, null).toString();
-        ltiVersion = jws.getBody().getOrDefault(LTI_VERSION, null).toString();
+        ltiRoles = getListFromLTIRequest(jws,LTI_ROLES);
+        ltiRoleScopeMentor = getListFromLTIRequest(jws,LTI_ROLE_SCOPE_MENTOR);
 
-        ltiGivenName = jws.getBody().getOrDefault(LTI_GIVEN_NAME, null).toString();
-        ltiFamilyName = jws.getBody().getOrDefault(LTI_FAMILY_NAME, null).toString();
-        ltiMiddleName = jws.getBody().getOrDefault(LTI_MIDDLE_NAME, null).toString();
-        //TODO add the "if" in the optional values, leave without if and capture the null point exception.
-        if (jws.getBody().containsKey(LTI_PICTURE)) {
-            ltiPicture = jws.getBody().getOrDefault(LTI_PICTURE, null).toString();
-        }
-        ltiEmail = jws.getBody().getOrDefault(LTI_EMAIL, null).toString();
-        ltiName = jws.getBody().getOrDefault(LTI_NAME, null).toString();
-
-        ltiRoles = (List)jws.getBody().getOrDefault(LTI_ROLES, null);
-        ltiRoleScopeMentor = (List)jws.getBody().getOrDefault(LTI_ROLE_SCOPE_MENTOR, null);
-
-        ltiResourceLink = (Map)jws.getBody().getOrDefault(LTI_LINK, null);
+        ltiResourceLink = getMapFromLTIRequest(jws,LTI_LINK);
         if (ltiResourceLink != null) {
-            ltiLinkId = ltiResourceLink.getOrDefault(LTI_LINK_ID, null).toString();
-            ltiLinkDescription = ltiResourceLink.getOrDefault(LTI_LINK_DESC, null).toString();
-            ltiLinkTitle = ltiResourceLink.getOrDefault(LTI_LINK_TITLE, null).toString();
+            ltiLinkId = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_ID);
+            ltiLinkDescription = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_DESC);
+            ltiLinkTitle = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_TITLE);
         }
-        ltiContext = (Map)jws.getBody().getOrDefault(LTI_CONTEXT, null);
+        ltiContext = getMapFromLTIRequest(jws,LTI_CONTEXT);
         if (ltiContext != null) {
-            ltiContextId = ltiContext.getOrDefault(LTI_CONTEXT_ID, null).toString();
-            ltiContextLabel = ltiContext.getOrDefault(LTI_CONTEXT_LABEL, null).toString();
-            ltiContextTitle = ltiContext.getOrDefault(LTI_CONTEXT_TITLE, null).toString();
-            ltiContextType = (List) ltiContext.getOrDefault(LTI_CONTEXT_TYPE, null);
+            ltiContextId = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_ID);
+            ltiContextLabel = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_LABEL);
+            ltiContextTitle = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_TITLE);
+            ltiContextType = getListFromLTIRequestMap(ltiContext,LTI_CONTEXT_TYPE);
         }
 
-        ltiToolPlatform = (Map)jws.getBody().getOrDefault(LTI_PLATFORM, null);
+        ltiToolPlatform = getMapFromLTIRequest(jws,LTI_PLATFORM);
         if (ltiToolPlatform != null) {
-            ltiToolPlatformName = ltiToolPlatform.getOrDefault(LTI_PLATFORM_NAME, null).toString();
-            ltiToolPlatformContactEmail = ltiToolPlatform.getOrDefault(LTI_PLATFORM_CONTACT_EMAIL, null).toString();
-            ltiToolPlatformDesc = ltiToolPlatform.getOrDefault(LTI_PLATFORM_DESC, null).toString();
-            ltiToolPlatformUrl = ltiToolPlatform.getOrDefault(LTI_PLATFORM_URL, null).toString();
-            ltiToolPlatformProduct = ltiToolPlatform.getOrDefault(LTI_PLATFORM_PRODUCT, null).toString();
-            ltiToolPlatformFamilyCode = ltiToolPlatform.getOrDefault(LTI_PLATFORM_PRODUCT_FAMILY_CODE, null).toString();
-            ltiToolPlatformVersion = ltiToolPlatform.getOrDefault(LTI_PLATFORM_VERSION, null).toString();
+            ltiToolPlatformName = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_NAME);
+            ltiToolPlatformContactEmail = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_CONTACT_EMAIL);
+            ltiToolPlatformDesc = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_DESC);
+            ltiToolPlatformUrl = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_URL);
+            ltiToolPlatformProduct = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_PRODUCT);
+            ltiToolPlatformFamilyCode = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_PRODUCT_FAMILY_CODE);
+            ltiToolPlatformVersion = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_VERSION);
         }
 
-        ltiEndpoint = (Map)jws.getBody().getOrDefault(LTI_ENDPOINT, null);
+        ltiEndpoint = getMapFromLTIRequest(jws,LTI_ENDPOINT);
         if (ltiEndpoint != null) {
-            ltiEndpointScope = (List) ltiEndpoint.getOrDefault(LTI_ENDPOINT_SCOPE, null);
-            ltiEndpointLineItems = ltiEndpoint.getOrDefault(LTI_ENDPOINT_LINEITEMS, null).toString();
+            ltiEndpointScope = getListFromLTIRequestMap(ltiEndpoint,LTI_ENDPOINT_SCOPE);
+            ltiEndpointLineItems = getStringFromLTIRequestMap(ltiEndpoint,LTI_ENDPOINT_LINEITEMS);
         }
 
-        ltiNamesRoleService = (Map)jws.getBody().getOrDefault(LTI_NAMES_ROLE_SERVICE, null);
+        ltiNamesRoleService = getMapFromLTIRequest(jws,LTI_NAMES_ROLE_SERVICE);
         if (ltiNamesRoleService != null) {
-            ltiNamesRoleServiceContextMembershipsUrl = ltiNamesRoleService.getOrDefault(LTI_NAMES_ROLE_SERVICE_CONTEXT, null).toString();
-            ltiNamesRoleServiceVersions = (List) ltiNamesRoleService.getOrDefault(LTI_NAMES_ROLE_SERVICE_VERSIONS, null);
+            ltiNamesRoleServiceContextMembershipsUrl = getStringFromLTIRequestMap(ltiNamesRoleService,LTI_NAMES_ROLE_SERVICE_CONTEXT);
+            ltiNamesRoleServiceVersions = getListFromLTIRequestMap(ltiNamesRoleService,LTI_NAMES_ROLE_SERVICE_VERSIONS);
         }
 
-        ltiCaliperEndpointService = (Map)jws.getBody().getOrDefault(LTI_CALIPER_ENDPOINT_SERVICE, null);
+        ltiCaliperEndpointService = getMapFromLTIRequest(jws,LTI_CALIPER_ENDPOINT_SERVICE);
         if (ltiCaliperEndpointService != null) {
-            ltiCaliperEndpointServiceScopes = (List) ltiCaliperEndpointService.getOrDefault(LTI_CALIPER_ENDPOINT_SERVICE_SCOPES, null);
-            ltiCaliperEndpointServiceUrl = ltiCaliperEndpointService.getOrDefault(LTI_CALIPER_ENDPOINT_SERVICE_URL, null).toString();
-            ltiCaliperEndpointServiceSessionId = ltiCaliperEndpointService.getOrDefault(LTI_CALIPER_ENDPOINT_SERVICE_SESSION_ID, null).toString();
+            ltiCaliperEndpointServiceScopes = getListFromLTIRequestMap(ltiCaliperEndpointService, LTI_CALIPER_ENDPOINT_SERVICE_SCOPES);
+            ltiCaliperEndpointServiceUrl = getStringFromLTIRequestMap(ltiCaliperEndpointService,LTI_CALIPER_ENDPOINT_SERVICE_URL);
+            ltiCaliperEndpointServiceSessionId = getStringFromLTIRequestMap(ltiCaliperEndpointService,LTI_CALIPER_ENDPOINT_SERVICE_SESSION_ID);
         }
 
         iss = jws.getBody().getIssuer();
@@ -586,78 +500,171 @@ public class LTI3Request {
         iat = jws.getBody().getIssuedAt();
         exp = jws.getBody().getExpiration();
         sub = jws.getBody().getSubject();
-        nonce = jws.getBody().getOrDefault(LTI_NONCE, null).toString();
+        nonce = getStringFromLTIRequest(jws,LTI_NONCE);
 
-        lti11LegacyUserId = jws.getBody().getOrDefault(LTI_11_LEGACY_USER_ID, null).toString();
+        lti11LegacyUserId = getStringFromLTIRequest(jws,LTI_11_LEGACY_USER_ID);
 
-        String locale = jws.getBody().getOrDefault(LTI_PRES_LOCALE, null).toString();
+        String locale = getStringFromLTIRequest(jws,LTI_PRES_LOCALE);
         if (locale == null) {
             ltiPresLocale = Locale.getDefault();
         } else {
             ltiPresLocale = Locale.forLanguageTag(locale);
         }
 
-        ltiLaunchPresentation = (Map)jws.getBody().getOrDefault(LTI_LAUNCH_PRESENTATION, null);
+        ltiLaunchPresentation = getMapFromLTIRequest(jws,LTI_LAUNCH_PRESENTATION);
         if (ltiLaunchPresentation != null) {
-            ltiPresHeight = Integer.valueOf(ltiLaunchPresentation.getOrDefault(LTI_PRES_HEIGHT, null).toString());
-            ltiPresWidth = Integer.valueOf(ltiLaunchPresentation.getOrDefault(LTI_PRES_WIDTH, null).toString());
-            ltiPresReturnUrl = ltiLaunchPresentation.getOrDefault(LTI_PRES_RETURN_URL, null).toString();
-            ltiPresTarget = ltiLaunchPresentation.getOrDefault(LTI_PRES_TARGET, null).toString();
+            ltiPresHeight = getIntegerFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_HEIGHT);
+            ltiPresWidth = getIntegerFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_WIDTH);
+            ltiPresReturnUrl = getStringFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_RETURN_URL);
+            ltiPresTarget = getStringFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_TARGET);
         }
-        ltiCustom = (Map)jws.getBody().getOrDefault(LTI_CUSTOM, null);
-        ltiExtension = (Map)jws.getBody().getOrDefault(LTI_EXTENSION, null);
+        ltiCustom = getMapFromLTIRequest(jws,LTI_CUSTOM);
+        ltiExtension = getMapFromLTIRequest(jws,LTI_EXTENSION);
 
-        ltiTargetLinkUrl = jws.getBody().getOrDefault(LTI_TARGET_LINK_URI, null).toString();
-
-
-
-        complete = checkCompleteLTIRequest(false);
-        correct = checkCorrectLTIRequest(false);
+        ltiTargetLinkUrl = getStringFromLTIRequest(jws,LTI_TARGET_LINK_URI);
 
         // A sample that shows how we can store some of this in the session
         HttpSession session = this.httpServletRequest.getSession();
         //session.setAttribute(LTI_USER_ID, ltiUserId);
         session.setAttribute(LTI_CONTEXT_ID, ltiContextId);
 
-        return complete && correct;
+        String isComplete = checkCompleteLTIRequest();
+        String isCorrect = checkCorrectLTIRequest();
+
+        if (isComplete.equals("true") && isCorrect.equals("true")) {
+            return "true";
+        } else {
+            if (isComplete.equals("true")) {
+                isComplete = "";
+            } else if (isCorrect.equals("true")) {
+                isCorrect = "";
+            }
+            return isComplete + isCorrect;
+        }
     }
 
+    private String getStringFromLTIRequest(Jws<Claims> jws, String stringToGet) {
+        if (jws.getBody().containsKey(stringToGet)) {
+            return jws.getBody().get(stringToGet, String.class);
+        } else {
+            return null;
+        }
+    }
+
+    private String getStringFromLTIRequestMap(Map map, String stringToGet) {
+        if (map.containsKey(stringToGet)) {
+            return map.get(stringToGet).toString();
+        } else {
+            return null;
+        }
+    }
+
+    private Integer getIntegerFromLTIRequestMap(Map map, String integerToGet) {
+        if (map.containsKey(integerToGet)) {
+            try {
+                return Integer.valueOf(map.get(integerToGet).toString());
+            }catch (Exception ex) {
+                log.error("No integer when expected in: " + integerToGet + ". Returning null");
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private List<String> getListFromLTIRequestMap(Map map, String listToGet) {
+        if (map.containsKey(listToGet)) {
+            try {
+                return (List)map.get(listToGet);
+            }catch (Exception ex) {
+                log.error("No list when expected in: " + listToGet + ". Returning null");
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private Map<String,Object> getMapFromLTIRequest(Jws<Claims> jws, String mapToGet) {
+        if (jws.getBody().containsKey(mapToGet)) {
+            try {
+                return jws.getBody().get(mapToGet, Map.class);
+            }catch (Exception ex) {
+                log.error("No map integer when expected in: " + mapToGet + ". Returning null");
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    private List<String> getListFromLTIRequest(Jws<Claims> jws, String listToGet) {
+        if (jws.getBody().containsKey(listToGet)) {
+            try {
+                return jws.getBody().get(listToGet, List.class);
+            }catch (Exception ex) {
+                log.error("No map integer when expected in: " + listToGet + ". Returning null");
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+
     /**
-     * Checks if this LTI3 request object has a complete set of required LTI data,
-     * also sets the #complete variable appropriately
+     * Checks if this LTI3 request object has a complete set of required LTI3 data,
+     * NOTE: this code is not the one I would create for production, it is more a didactic one
+     * to understand what is being checked.
      *
-     * @param objects if true then check for complete objects, else just check for complete request params
      * @return true if complete
      */
-    //TODO update this to check the really complete conditions...!
 
-    protected boolean checkCompleteLTIRequest(boolean objects) {
+    protected String checkCompleteLTIRequest() {
 
-        // Check if we have the roles
-        // Check if we have the deployment_id
-        // Required resource_link Claim
-        // User (sub) Claim
-        // Test Launches Instructor With Only Email - Without Context ???
+        String complete = "";
 
-        if (objects && context != null && link != null ) {
-            complete = true;
-        } else if (!objects && ltiContextId != null && ltiLinkId != null ) {
-            complete = true;
-        } else {
-            complete = false;
+        if (StringUtils.isEmpty(ltiDeploymentId)) {
+            complete += " Lti Deployment Id is empty.\n ";
         }
-        return complete;
+        if (ltiResourceLink == null || ltiResourceLink.size() == 0) {
+            complete += " Lti Resource Link is empty.\n ";
+        } else {
+            if (StringUtils.isEmpty(ltiLinkId)) {
+                complete += " Lti Resource Link ID is empty.\n ";
+            }
+        }
+        if (StringUtils.isEmpty(sub)) {
+            complete += " User (sub) is empty.\n ";
+        }
+        if (ltiRoles == null || ltiRoles.size() == 0) {
+            complete += " Lti Roles is empty.\n ";
+        }
+        if (exp == null ){
+            complete += " Exp is empty or invalid.\n ";
+        }
+        if (iat == null ){
+            complete += " Iat is empty or invalid.\n ";
+        }
+
+        if (complete.equals("")) {
+            return "true";
+        } else {
+            return complete;
+        }
     }
 
     /**
      * Checks if this LTI3 request object has correct values
      *
-     * @param objects if true then check for complete objects, else just check for complete request params
-     * @return true if complete
+     * @return the string "true" if complete and the error message if not
      */
     //TODO update this to check the really complete conditions...!
 
-    protected boolean checkCorrectLTIRequest(boolean objects) {
+    protected String checkCorrectLTIRequest() {
+
+        String correct = "true";
+
 
         //TODO check things as:
         // JWT with Bad Timestamp Values
@@ -673,18 +680,26 @@ public class LTI3Request {
      * @param jws the JWT token parsed.
      * @return true if this is a valid LTI request
      */
-    public static boolean isLTI3Request(Jws<Claims> jws) {
+    public static String isLTI3Request(Jws<Claims> jws) {
 
+        String errorDetail = "";
         boolean valid = false;
         String ltiVersion = jws.getBody().get(LTI_VERSION,String.class);
+        if (ltiVersion == null) {errorDetail = "LTI Version = null. ";}
         String ltiMessageType = jws.getBody().get(LTI_MESSAGE_TYPE,String.class);
-        if (ltiMessageType != null && ltiVersion != null) {
+        if (ltiMessageType == null) {errorDetail += "LTI Message Type = null. ";}
+            if (ltiMessageType != null && ltiVersion != null) {
             boolean goodMessageType = LTI_MESSAGE_TYPE_RESOURCE_LINK.equals(ltiMessageType);
+            if (!goodMessageType) {errorDetail = "LTI Message Type is not right: " + ltiMessageType + ". ";}
             boolean goodLTIVersion = LTI_VERSION_3.equals(ltiVersion);
+            if (!goodLTIVersion) {errorDetail += "LTI Version is not right: " + ltiVersion;}
             valid = goodMessageType && goodLTIVersion;
         }
-        // resource_link_id is also required
-        return valid;
+        if (valid) {
+            return "true";
+        }else {
+            return errorDetail;
+        }
     }
 
 

@@ -112,7 +112,8 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
         } catch (SignatureException ex) {
-            log.info("Error checking the signature");
+            log.info("Invalid JWT signature: " + ex.getMessage());
+            log.debug("Exception " + ex.getMessage(), ex);
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
