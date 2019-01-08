@@ -28,7 +28,7 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import ltistarter.config.ApplicationConfig;
-import ltistarter.model.IssConfigurationEntity;
+import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.LtiContextEntity;
 import ltistarter.model.LtiKeyEntity;
 import ltistarter.model.LtiLinkEntity;
@@ -240,6 +240,7 @@ public class LTI3Request {
 
     List<String> ltiRoles;
     List<String> ltiRoleScopeMentor;
+    int userRoleNumber;
     Map<String, Object> ltiResourceLink;
     String ltiLinkId;
     String ltiLinkTitle;
@@ -278,6 +279,7 @@ public class LTI3Request {
     Date iat;
     Date exp;
     String sub;
+    String kid;
 
     String lti11LegacyUserId;
 
@@ -367,13 +369,13 @@ public class LTI3Request {
                 try {
                     // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
+                    Lti3KeyEntity lti3KeyEntity = ltiDataService.getRepos().lti3KeyRepository.findByPlatformKid(header.getKeyId()).get(0);
 
-                    if (issConfigurationEntity.getJwksEndpoint() != null) {
+                    if (lti3KeyEntity.getJwksEndpoint() != null) {
                         try {
-                            JWKSet publicKeys = JWKSet.load(new URL(issConfigurationEntity.getJwksEndpoint()));
+                            JWKSet publicKeys = JWKSet.load(new URL(lti3KeyEntity.getJwksEndpoint()));
                             //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
-                            JWK jwk = publicKeys.getKeyByKeyId(issConfigurationEntity.getPlatformKid());
+                            JWK jwk = publicKeys.getKeyByKeyId(lti3KeyEntity.getPlatformKid());
                             PublicKey key = ((AsymmetricJWK) jwk).toPublicKey();
                             return key;
                         } catch (JOSEException ex) {
@@ -384,7 +386,7 @@ public class LTI3Request {
                             return null;
                         }
                     } else {
-                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
+                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(lti3KeyEntity.getPlatformKid(), false)).get().getKeyKey());
                     }
                 } catch (GeneralSecurityException ex){
                     log.error("Error generating the tool public key",ex);
@@ -401,6 +403,7 @@ public class LTI3Request {
             throw new IllegalStateException("Request is not a valid LTI3 request: " + processRequestParameters);
         };
 
+        //TODO
         ltiDataService.loadLTIDataFromDB(this);
         if (update) {
             ltiDataService.updateLTIDataInDB(this);
@@ -449,6 +452,7 @@ public class LTI3Request {
         ltiName = getStringFromLTIRequest(jws,LTI_NAME);
 
         ltiRoles = getListFromLTIRequest(jws,LTI_ROLES);
+        userRoleNumber = makeUserRoleNum(ltiRoles);
         ltiRoleScopeMentor = getListFromLTIRequest(jws,LTI_ROLE_SCOPE_MENTOR);
 
         ltiResourceLink = getMapFromLTIRequest(jws,LTI_LINK);
@@ -613,6 +617,22 @@ public class LTI3Request {
 
 
     /**
+     * Checks if this LTI request object has a complete set of required LTI data,
+     * also sets the #complete variable appropriately
+     *
+     * @param objects if true then check for complete objects, else just check for complete request params
+     * @return true if complete
+     */
+    protected boolean checkCompleteLTIRequest(boolean objects) {
+        if (objects && key != null && context != null && link != null && user != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
+    /**
      * Checks if this LTI3 request object has a complete set of required LTI3 data,
      * NOTE: this code is not the one I would create for production, it is more a didactic one
      * to understand what is being checked.
@@ -667,7 +687,6 @@ public class LTI3Request {
 
 
         //TODO check things as:
-        // JWT with Bad Timestamp Values
         // Roles are correct roles
         //
 
@@ -700,6 +719,23 @@ public class LTI3Request {
         }else {
             return errorDetail;
         }
+    }
+
+
+    /**
+     * @param rawUserRoles the raw roles string (this could also only be part of the string assuming it is the highest one)
+     * @return the number that represents the role (higher is more access)
+     */
+    public static int makeUserRoleNum(List<String> rawUserRoles) {
+        int roleNum = 0;
+        if (rawUserRoles != null) {
+            if (rawUserRoles.contains(LTI_ROLE_MEMBERSHIP_ADMIN)) {
+                roleNum = 2;
+            } else if (rawUserRoles.contains(LTI_ROLE_MEMBERSHIP_INSTRUCTOR)) {
+                roleNum = 1;
+            }
+        }
+        return roleNum;
     }
 
 

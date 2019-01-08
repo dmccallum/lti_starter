@@ -17,11 +17,11 @@ package ltistarter.controllers;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import ltistarter.lti.LTIDataService;
-import ltistarter.model.IssConfigurationEntity;
+import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.RSAKeyId;
 import ltistarter.model.dto.LoginInitiationDTO;
 import ltistarter.oauth.OAuthUtils;
-import ltistarter.repository.IssConfigurationRepository;
+import ltistarter.repository.Lti3KeyRepository;
 import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -54,7 +54,7 @@ public class OIDCController extends BaseController {
     private final String OPENID = "openid";
 
     @Autowired
-    IssConfigurationRepository issConfigurationRepository;
+    Lti3KeyRepository lti3KeyRepository;
 
     @Autowired
     LTIDataService ltiDataService;
@@ -74,16 +74,16 @@ public class OIDCController extends BaseController {
                 req.getParameter("target_link_uri"),
                 req.getParameter("lti_message_hint"));
         // Search for the configuration for that issuer
-        List<IssConfigurationEntity> issConfigurationEntityList =issConfigurationRepository.findByIss(loginInitiationDTO.getIss());
+        List<Lti3KeyEntity> lti3KeyEntityList = lti3KeyRepository.findByIss(loginInitiationDTO.getIss());
         // We deal with some possible errors
-        if (issConfigurationEntityList.isEmpty()) {  //If we don't have configuration
+        if (lti3KeyEntityList.isEmpty()) {  //If we don't have configuration
             model.addAttribute("error_type","iss_nonexisting");
             return "error";
         } else {
             // If we have more than one configuration for the same iss, at this moment we don't know about the client id, so we just pick the first one
-            IssConfigurationEntity issConfigurationEntity = issConfigurationEntityList.get(0);
+            Lti3KeyEntity lti3KeyEntity = lti3KeyEntityList.get(0);
             try {
-                Map<String, String> parameters = generateAuthRequestPayload(issConfigurationEntity, loginInitiationDTO);
+                Map<String, String> parameters = generateAuthRequestPayload(lti3KeyEntity, loginInitiationDTO);
                 model.addAllAttributes(parameters);
                 return "oicdRedirect";
             } catch (Exception ex) {
@@ -97,14 +97,14 @@ public class OIDCController extends BaseController {
     /**
      * This generates a map with all the information that we need to send to the OIDC Authorization endpoint in the Platform.
      * In this case, we will put this in the model to be used by the thymeleaf template.
-     * @param issConfigurationEntity
+     * @param lti3KeyEntity
      * @param loginInitiationDTO
      * @return
      */
-    private Map<String, String> generateAuthRequestPayload (IssConfigurationEntity issConfigurationEntity, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
+    private Map<String, String> generateAuthRequestPayload (Lti3KeyEntity lti3KeyEntity, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
 
         Map<String, String> authRequestMap =  new HashMap<>();
-        authRequestMap.put("client_id",issConfigurationEntity.getClientId()); //As it came from the Platform
+        authRequestMap.put("client_id", lti3KeyEntity.getClientId()); //As it came from the Platform
         authRequestMap.put("login_hint",loginInitiationDTO.getLoginHint()); //As it came from the Platform
         authRequestMap.put("lti_message_hint",loginInitiationDTO.getLtiMessageHint()); //As it came from the Platform
         authRequestMap.put("nonce",UUID.randomUUID().toString());  //Just a nonce
@@ -116,9 +116,9 @@ public class OIDCController extends BaseController {
         authRequestMap.put("response_mode",FORM_POST); //Always this value
         authRequestMap.put("response_type",ID_TOKEN); //Always this value
         authRequestMap.put("scope",OPENID);  //Always this value
-        String state = generateState(issConfigurationEntity,authRequestMap,loginInitiationDTO);
+        String state = generateState(lti3KeyEntity,authRequestMap,loginInitiationDTO);
         authRequestMap.put("state",state); //The state we use later to retrieve some useful information about the OICD request.
-        authRequestMap.put("oicdEndpoint",issConfigurationEntity.getOidcEndpoint());  //For the post
+        authRequestMap.put("oicdEndpoint", lti3KeyEntity.getOidcEndpoint());  //For the post
         authRequestMap.put("oicdEndpointComplete",generateCompleteUrl(authRequestMap));  //For the GET with all the query string parameters
         return authRequestMap;
     }
@@ -126,12 +126,12 @@ public class OIDCController extends BaseController {
     /**
      * The state will be returned when the tool makes the final call to us, so it is useful to send information
      * to our own tool, to know about the request.
-     * @param issConfigurationEntity
+     * @param lti3KeyEntity
      * @param authRequestMap
      * @param loginInitiationDTO
      * @return
      */
-    private String generateState(IssConfigurationEntity issConfigurationEntity, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
+    private String generateState(Lti3KeyEntity lti3KeyEntity, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
 
         Date date = new Date();
         Key issPrivateKey = OAuthUtils.loadPrivateKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId("OWNKEY",true)).get().getPrivateKeyKey());
@@ -139,7 +139,7 @@ public class OIDCController extends BaseController {
         String state = Jwts.builder()
                 .setHeaderParam("kid","OWNKEY")  // The key id used to sign this
                 .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
-                .setSubject(issConfigurationEntity.getIss()) // We store here the platform issuer to check that matches with the issuer received later
+                .setSubject(lti3KeyEntity.getIss()) // We store here the platform issuer to check that matches with the issuer received later
                 .setAudience("Think about what goes here")  //TODO think about a useful value here
                 .setExpiration(DateUtils.addSeconds(date,3600)) //a java.util.Date
                 .setNotBefore(date) //a java.util.Date

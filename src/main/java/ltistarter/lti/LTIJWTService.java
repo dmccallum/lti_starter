@@ -26,7 +26,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 
-import ltistarter.model.IssConfigurationEntity;
+import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.RSAKeyEntity;
 import ltistarter.model.RSAKeyId;
 import ltistarter.oauth.OAuthUtils;
@@ -111,15 +111,15 @@ public class LTIJWTService {
                 try {
                     // We are dealing with RS256 encryption, so we have some Oauth utils to manage the keys and
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
-                    IssConfigurationEntity issConfigurationEntity = ltiDataService.getRepos().issConfigurationRepository.findByPlatformKid(header.getKeyId()).get(0);
+                    Lti3KeyEntity lti3KeyEntity = ltiDataService.getRepos().lti3KeyRepository.findByPlatformKid(header.getKeyId()).get(0);
 
-                    if (issConfigurationEntity.getJwksEndpoint() != null) {
+                    if (lti3KeyEntity.getJwksEndpoint() != null) {
                         try {
-                            JWKSet publicKeys = JWKSet.load(new URL(issConfigurationEntity.getJwksEndpoint()));
+                            JWKSet publicKeys = JWKSet.load(new URL(lti3KeyEntity.getJwksEndpoint()));
                             //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
-                            //JwkProvider provider = new UrlJwkProvider(issConfigurationEntity.getJwksEndpoint());
-                            //Jwk jwk = provider.get(issConfigurationEntity.getPlatformKid());
-                             JWK jwk = publicKeys.getKeyByKeyId(issConfigurationEntity.getPlatformKid());
+                            //JwkProvider provider = new UrlJwkProvider(lti3KeyEntity.getJwksEndpoint());
+                            //Jwk jwk = provider.get(lti3KeyEntity.getPlatformKid());
+                             JWK jwk = publicKeys.getKeyByKeyId(lti3KeyEntity.getPlatformKid());
                              return ((AsymmetricJWK) jwk).toPublicKey();
                         } catch (JOSEException ex) {
                             log.error("Error getting the iss public key", ex);
@@ -129,7 +129,7 @@ public class LTIJWTService {
                             return null;
                         }
                     } else {
-                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(issConfigurationEntity.getPlatformKid(), false)).get().getKeyKey());
+                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(lti3KeyEntity.getPlatformKid(), false)).get().getKeyKey());
                     }
                 } catch (GeneralSecurityException ex){
                     log.error("Error generating the tool public key",ex);

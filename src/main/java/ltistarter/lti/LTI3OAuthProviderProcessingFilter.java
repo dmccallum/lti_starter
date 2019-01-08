@@ -17,13 +17,8 @@ package ltistarter.lti;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.JwsHeader;
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;
-import io.jsonwebtoken.SigningKeyResolverAdapter;
-import ltistarter.model.IssConfigurationEntity;
 
-import ltistarter.oauth.OAuthUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,9 +32,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.PublicKey;
 
 /**
  * LTI3 Redirect calls will be filtered on this class. We will check if the JWT is valid and then extract all the needed data.

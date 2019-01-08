@@ -15,12 +15,12 @@
 package ltistarter.database;
 
 import ltistarter.config.ApplicationConfig;
-import ltistarter.model.IssConfigurationEntity;
+import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.LtiKeyEntity;
 import ltistarter.model.LtiUserEntity;
 import ltistarter.model.ProfileEntity;
 import ltistarter.model.RSAKeyEntity;
-import ltistarter.repository.IssConfigurationRepository;
+import ltistarter.repository.Lti3KeyRepository;
 import ltistarter.repository.LtiKeyRepository;
 import ltistarter.repository.LtiUserRepository;
 import ltistarter.repository.ProfileRepository;
@@ -62,7 +62,7 @@ public class DatabasePreload {
     ProfileRepository profileRepository;
     @Autowired
     @SuppressWarnings({"SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
-    IssConfigurationRepository issConfigurationRepository;
+    Lti3KeyRepository lti3KeyRepository;
 
     @Value("${oicd.privatekey}")
     private String ownPrivateKey;
@@ -80,14 +80,14 @@ public class DatabasePreload {
             // preload the sample data
             log.info("INIT - preloaded keys and user");
             // create our sample key
-            ltiKeyRepository.saveAndFlush(new LtiKeyEntity("key", "secret"));
+
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("OWNKEY", true,
                     getOwnPublicKey(),
                     getOwnPrivateKey()));
 
-            IssConfigurationEntity iss2 = new IssConfigurationEntity();
-            iss2.setClientId("Ddbo123456");
-            iss2.setIss("https://sakai.org");
+            Lti3KeyEntity iss1 = new Lti3KeyEntity();
+            iss1.setClientId("Ddbo123456");
+            iss1.setIss("https://sakai.org");
             String iss2PublicKey = "-----BEGIN PUBLIC KEY-----" +
                     "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwuvy1UpBbEzUF0C56CoA" +
                     "m14BuBpUJGrJTTpSLbi4rS0xnUgAohkri9CRexbjpPNjbAYaSi4/171T2eHlfAi4" +
@@ -97,10 +97,10 @@ public class DatabasePreload {
                     "mVoYDo7H96tulDMudC0JB0MvaOnnb+MU9jIVuvQkvrZ0jhGmTx8K0gvz2QAgWw6/" +
                     "mwIDAQAB" +
                     "-----END PUBLIC KEY-----";
-            iss2.setOidcEndpoint("https://lti-ri.imsglobal.org/platforms/89/authorizations/new");
-            iss2.setDeploymentId("0002");
-            iss2.setToolKid("Tool_9237492835");
-            iss2.setPlatformKid("9237492835");
+            iss1.setOidcEndpoint("https://lti-ri.imsglobal.org/platforms/89/authorizations/new");
+            iss1.setDeploymentId("0002");
+            iss1.setToolKid("Tool_9237492835");
+            iss1.setPlatformKid("9237492835");
             String tool2PrivateString = "-----BEGIN PRIVATE KEY-----" +
                     "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC2QJCkV2gFoQD2" +
                     "z7dQRq7g5qIxPaZJJZAJ07wPxdAJiyuWbo0bMOvH//5IqmOnUdal7iNYtDKwr9Cx" +
@@ -140,19 +140,24 @@ public class DatabasePreload {
                     "-----END PUBLIC KEY-----";
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",true, tool2PublicString,tool2PrivateString));
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",false, iss2PublicKey,null));
-            issConfigurationRepository.saveAndFlush(iss2);
 
-            IssConfigurationEntity iss3 = new IssConfigurationEntity();
-            iss3.setClientId("imstestuser");
-            iss3.setIss("ltiadv-cert.imsglobal.org");
-            iss3.setJwksEndpoint("https://oauth2server.imsglobal.org/jwks");
+            LtiKeyEntity key1 = new LtiKeyEntity("key", "secret");
+            key1 = ltiKeyRepository.save(key1);
+            iss1.setKeyId(key1.getKeyId());
+            key1.setLti3KeyEntity(iss1);
+            key1 = ltiKeyRepository.saveAndFlush(key1);
+
+            Lti3KeyEntity iss2 = new Lti3KeyEntity();
+            iss2.setClientId("imstestuser");
+            iss2.setIss("ltiadv-cert.imsglobal.org");
+            iss2.setJwksEndpoint("https://oauth2server.imsglobal.org/jwks");
             String iss3PublicKey = "";
-            iss3.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
-            iss3.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
-            iss3.setoAuth2TokenUrl("https://oauth2server.imsglobal.org/oauth2server/authcodejwt");
-            iss3.setDeploymentId("testdeploy");
-            iss3.setToolKid("imstester_4");
-            iss3.setPlatformKid("imstester_4");
+            iss2.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
+            iss2.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
+            iss2.setoAuth2TokenUrl("https://oauth2server.imsglobal.org/oauth2server/authcodejwt");
+            iss2.setDeploymentId("testdeploy");
+            iss2.setToolKid("imstester_4");
+            iss2.setPlatformKid("imstester_4");
             String tool3PrivateString = "-----BEGIN RSA PRIVATE KEY-----" +
                     "MIIEowIBAAKCAQEAsW3eobPIj5LsyHcMGckVSSC621uL+0zkeMoWfXfNmvTH+zt5" +
                     "WOeEIdz+X7fK+F+lO7ic5WdJEGmp9/cjAf0Z6SsmnvvHlHV/xsWtJm4DiuuF2MAa" +
@@ -183,7 +188,14 @@ public class DatabasePreload {
             String tool3PublicKey ="";
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("imstester_4",true, tool3PublicKey,tool3PrivateString));
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("imstester_4",false, iss3PublicKey,null));
-            issConfigurationRepository.saveAndFlush(iss3);
+            LtiKeyEntity key2 = new LtiKeyEntity("key2", "secret2");
+            key2 = ltiKeyRepository.save(key2);
+            iss2.setKeyId(key2.getKeyId());
+            key2.setLti3KeyEntity(iss2);
+            ltiKeyRepository.saveAndFlush(key2);
+
+            LtiKeyEntity key3 = new LtiKeyEntity("key3", "secret3");
+            ltiKeyRepository.saveAndFlush(key3);
 
             // create our sample user
             LtiUserEntity user = ltiUserRepository.saveAndFlush(new LtiUserEntity("azeckoski", null));

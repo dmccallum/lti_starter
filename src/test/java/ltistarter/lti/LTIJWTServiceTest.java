@@ -19,11 +19,10 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import ltistarter.BaseApplicationTest;
-import ltistarter.model.IssConfigurationEntity;
+import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.RSAKeyEntity;
-import ltistarter.model.RSAKeyId;
 import ltistarter.oauth.OAuthUtils;
-import ltistarter.repository.IssConfigurationRepository;
+import ltistarter.repository.Lti3KeyRepository;
 import ltistarter.repository.RSAKeyRepository;
 import org.apache.commons.lang3.time.DateUtils;
 import static org.junit.Assert.*;
@@ -34,10 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.Key;
-import java.security.PublicKey;
 import java.util.Date;
 
 @SuppressWarnings({"UnusedAssignment", "SpringJavaAutowiredMembersInspection", "SpringJavaAutowiringInspection"})
@@ -51,7 +47,7 @@ public class LTIJWTServiceTest extends BaseApplicationTest {
     RSAKeyRepository rsaKeyRepository;
 
     @Autowired
-    IssConfigurationRepository issConfigurationRepository;
+    Lti3KeyRepository lti3KeyRepository;
 
     @Value("${oicd.privatekey}")
     private String ownPrivateKey;
@@ -94,7 +90,7 @@ public class LTIJWTServiceTest extends BaseApplicationTest {
                 getOwnPrivateKey()));
 
 
-        IssConfigurationEntity iss2 = new IssConfigurationEntity();
+        Lti3KeyEntity iss2 = new Lti3KeyEntity();
         iss2.setClientId("Ddbo123456");
         iss2.setIss("https://sakai.org");
 
@@ -141,7 +137,7 @@ public class LTIJWTServiceTest extends BaseApplicationTest {
                 "-----END PUBLIC KEY-----";
         rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",true, tool2PublicString,tool2PrivateString));
         rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",false, iss2PublicKey,null));
-        issConfigurationRepository.saveAndFlush(iss2);
+        lti3KeyRepository.saveAndFlush(iss2);
 
         Date date = new Date();
         this.state = Jwts.builder()

@@ -17,18 +17,19 @@ package ltistarter.model;
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.MapsId;
+import javax.persistence.OneToOne;
+import javax.persistence.PrimaryKeyJoinColumn;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "iss_configuration")
-public class IssConfigurationEntity extends BaseEntity {
+public class Lti3KeyEntity extends BaseEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "id", nullable = false, insertable = true, updatable = true)
-    private long id;
+    @Column(name = "key_id")
+    private long keyId;
     @Basic
     @Column(name = "iss", nullable = false, insertable = true, updatable = true)
     private String iss;  //The value we receive in the issuer from the platform. We will use it to know where this come from.
@@ -54,13 +55,17 @@ public class IssConfigurationEntity extends BaseEntity {
     @Column(name = "platformKid", nullable = true, insertable = true, updatable = true)
     private String platformKid; // The tool key if number.
 
+    @OneToOne
+    @PrimaryKeyJoinColumn
+    private LtiKeyEntity ltiKeyEntity;
 
-    public long getId() {
-        return id;
+
+    public long getKeyId() {
+        return keyId;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setKeyId(long keyId) {
+        this.keyId = keyId;
     }
 
     public String getIss() {
@@ -127,9 +132,17 @@ public class IssConfigurationEntity extends BaseEntity {
         this.platformKid = platformKid;
     }
 
+    public LtiKeyEntity getLtiKeyEntity() {
+        return ltiKeyEntity;
+    }
+
+    public void setLtiKeyEntity(LtiKeyEntity ltiKeyEntity) {
+        this.ltiKeyEntity = ltiKeyEntity;
+    }
+
     @Override
     public int hashCode() {
-        int result = (int) id;
+        int result = (int) keyId;
         result = 31 * result + (iss != null ? iss.hashCode() : 0);
         result = 31 * result + (clientId != null ? clientId.hashCode() : 0);
         result = 31 * result + (oidcEndpoint != null ? oidcEndpoint.hashCode() : 0);

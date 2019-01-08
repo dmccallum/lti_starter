@@ -14,21 +14,20 @@
  */
 package ltistarter.repository;
 
-import ltistarter.model.IssConfigurationEntity;
-import ltistarter.model.KeyRequestEntity;
+import ltistarter.model.Lti3KeyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Transactional
-public interface IssConfigurationRepository extends JpaRepository<IssConfigurationEntity, Long> {
+public interface Lti3KeyRepository extends JpaRepository<Lti3KeyEntity, Long> {
 
-    List<IssConfigurationEntity> findByIss(String iss);
+    List<Lti3KeyEntity> findByIss(String iss);
 
-    List<IssConfigurationEntity> findByClientId(String clientId);
+    List<Lti3KeyEntity> findByClientId(String clientId);
 
-    List<IssConfigurationEntity> findByToolKid(String keyId);
+    List<Lti3KeyEntity> findByToolKid(String keyId);
 
-    List<IssConfigurationEntity> findByPlatformKid(String keyId);
+    List<Lti3KeyEntity> findByPlatformKid(String keyId);
 }

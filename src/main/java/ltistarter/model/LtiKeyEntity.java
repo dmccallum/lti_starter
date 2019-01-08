@@ -15,6 +15,7 @@
 package ltistarter.model;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.lang.Nullable;
 
 import javax.persistence.*;
 import java.util.Set;
@@ -24,7 +25,7 @@ import java.util.Set;
 public class LtiKeyEntity extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "key_id", nullable = false)
+    @Column(name = "key_id")
     private long keyId;
     @Basic
     @Column(name = "key_sha256", unique = true, nullable = false, insertable = true, updatable = true, length = 64)
@@ -55,6 +56,11 @@ public class LtiKeyEntity extends BaseEntity {
     private Set<LtiContextEntity> contexts;
     @OneToMany(mappedBy = "ltiKey", fetch = FetchType.LAZY)
     private Set<LtiServiceEntity> services;
+
+    @Nullable
+    @OneToOne(mappedBy="ltiKeyEntity", cascade=CascadeType.ALL)
+    @JoinColumn(name="key_id")
+    private Lti3KeyEntity lti3KeyEntity;
 
     protected LtiKeyEntity() {
     }
@@ -158,6 +164,14 @@ public class LtiKeyEntity extends BaseEntity {
 
     public void setNewConsumerProfile(String newConsumerProfile) {
         this.newConsumerProfile = newConsumerProfile;
+    }
+
+    public Lti3KeyEntity getLti3KeyEntity() {
+        return lti3KeyEntity;
+    }
+
+    public void setLti3KeyEntity(Lti3KeyEntity lti3KeyEntity) {
+        this.lti3KeyEntity = lti3KeyEntity;
     }
 
     @Override
