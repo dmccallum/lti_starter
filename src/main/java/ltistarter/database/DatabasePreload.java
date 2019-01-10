@@ -141,7 +141,7 @@ public class DatabasePreload {
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",true, tool2PublicString,tool2PrivateString));
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",false, iss2PublicKey,null));
 
-            LtiKeyEntity key1 = new LtiKeyEntity("key", "secret");
+            LtiKeyEntity key1 = new LtiKeyEntity("ownkey", "averyweirdsecretsonoinecanuseit");
             key1 = ltiKeyRepository.save(key1);
             iss1.setKeyId(key1.getKeyId());
             key1.setLti3KeyEntity(iss1);
@@ -188,13 +188,13 @@ public class DatabasePreload {
             String tool3PublicKey ="";
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("imstester_4",true, tool3PublicKey,tool3PrivateString));
             rsaKeyRepository.saveAndFlush(new RSAKeyEntity("imstester_4",false, iss3PublicKey,null));
-            LtiKeyEntity key2 = new LtiKeyEntity("key2", "secret2");
+            LtiKeyEntity key2 = new LtiKeyEntity("key", "secret");
             key2 = ltiKeyRepository.save(key2);
             iss2.setKeyId(key2.getKeyId());
             key2.setLti3KeyEntity(iss2);
             ltiKeyRepository.saveAndFlush(key2);
 
-            LtiKeyEntity key3 = new LtiKeyEntity("key3", "secret3");
+            LtiKeyEntity key3 = new LtiKeyEntity("keyonlylti", "secret");
             ltiKeyRepository.saveAndFlush(key3);
 
             // create our sample user
