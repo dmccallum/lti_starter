@@ -43,6 +43,9 @@ public class AllRepositories {
     public LtiKeyRepository keys;
 
     @Autowired
+    public RSAKeyRepository rsaKeys;
+
+    @Autowired
     public LtiLinkRepository links;
 
     @Autowired
@@ -62,6 +65,9 @@ public class AllRepositories {
 
     @Autowired
     public SSOKeyRepository ssoKeys;
+
+    @Autowired
+    public Lti3KeyRepository lti3KeyRepository;
 
     @PersistenceContext
     public EntityManager entityManager;

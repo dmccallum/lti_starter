@@ -14,12 +14,20 @@
  */
 package ltistarter.repository;
 
-import ltistarter.model.KeyRequestEntity;
+import ltistarter.model.Lti3KeyEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional
-public interface KeyRequestRepository extends JpaRepository<KeyRequestEntity, Long> {
+import java.util.List;
 
-    KeyRequestEntity findByUser_UserId(long userId);
+@Transactional
+public interface Lti3KeyRepository extends JpaRepository<Lti3KeyEntity, Long> {
+
+    List<Lti3KeyEntity> findByIss(String iss);
+
+    List<Lti3KeyEntity> findByClientId(String clientId);
+
+    List<Lti3KeyEntity> findByToolKid(String keyId);
+
+    List<Lti3KeyEntity> findByPlatformKid(String keyId);
 }

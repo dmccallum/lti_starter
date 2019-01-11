@@ -130,6 +130,22 @@
     </dependency>
 
     <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt</artifactId>
+      <version>0.9.1</version>
+    </dependency>
+    <!--<dependency>
+       <groupId>com.auth0</groupId>
+       <artifactId>jwks-rsa</artifactId>
+       <version>0.6.1</version>
+    </dependency>-->
+      <dependency>
+          <groupId>com.nimbusds</groupId>
+          <artifactId>nimbus-jose-jwt</artifactId>
+          <version>6.5.1</version>
+      </dependency>
+
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
@@ -149,7 +165,7 @@
 
   <profiles>
     <profile>
-      <id>debug</id>
+      <keyId>debug</keyId>
       <build>
         <plugins>
           <plugin>
@@ -228,7 +244,7 @@
 
   <developers>
     <developer>
-      <id>azeckoski</id>
+      <keyId>azeckoski</keyId>
       <name>Aaron Zeckoski</name>
       <email>azeckoski@vt.edu</email>
       <url>http://tinyurl.com/azprofile</url>

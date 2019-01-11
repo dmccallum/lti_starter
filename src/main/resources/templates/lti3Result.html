@@ -1,0 +1,71 @@
+<!--
+
+    Copyright 2014 Unicon (R)
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<!DOCTYPE html>
+<!--suppress CheckEmptyScriptTag -->
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.thymeleaf.org ">
+<head>
+    <title>LTI 3 </title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+</head>
+<body>
+<p>Lti 3 was succesful and we have this: </p>
+
+iss: <span th:text="${lTI3Request.iss}"/></br>
+aud: <span th:text="${lTI3Request.aud}"/></br>
+iat: <span th:text="${lTI3Request.iat}"/></br>
+exp: <span th:text="${lTI3Request.exp}"/></br>
+sub: <span th:text="${lTI3Request.sub}"/></br></br>
+
+ltiMessageType: <span th:text="${lTI3Request.ltiMessageType}"/></br>
+ltiVersion: <span th:text="${lTI3Request.ltiVersion}"/></br>
+ltiGivenName: <span th:text="${lTI3Request.ltiGivenName}"/></br>
+ltiFamilyName: <span th:text="${lTI3Request.ltiFamilyName}"/></br>
+ltiMiddleName" <span th:text="${lTI3Request.ltiMiddleName}"/></br>
+ltiPicture: <span th:text="${lTI3Request.ltiPicture}"/></br>
+ltiEmail: <span th:text="${lTI3Request.ltiEmail}"/></br>
+ltiName: <span th:text="${lTI3Request.ltiName}"/></br></br>
+
+Roles, is a list: <span th:text="${lTI3Request.ltiRoles}"/></br></br>
+
+ltiRoleScopeMentor, is a list: <span th:text="${lTI3Request.ltiRoleScopeMentor}"/></br></br>
+
+ltiResourceLink is a map <span th:text="${lTI3Request.ltiResourceLink}"/></br></br>
+
+ltiContext is a map <span th:text="${lTI3Request.ltiContext}"/></br></br>
+
+ltiToolPlatform is a map <span th:text="${lTI3Request.ltiToolPlatform}"/></br></br>
+
+ltiEndpoint is a map <span th:text="${lTI3Request.ltiEndpoint}"/></br></br>
+
+ltiNamesRoleService is a map  <span th:text="${lTI3Request.ltiNamesRoleService}"/></br></br>
+
+ltiCaliperEndpointService is a map <span th:text="${lTI3Request.ltiCaliperEndpointService}"/></br></br>
+
+
+lti11LegacyUserId: <span th:text="${lTI3Request.lti11LegacyUserId}"/></br>
+nonce: <span th:text="${lTI3Request.nonce}"/></br>
+locale: <span th:text="${lTI3Request.locale}"/></br></br>
+
+ltiLaunchPresentation is a map: <span th:text="${lTI3Request.ltiLaunchPresentation}"/></br>
+ltiExtension is a map <span th:text="${lTI3Request.ltiExtension}"/></br>
+ltiCustom is a map <span th:text="${lTI3Request.ltiCustom}"/></br></br>
+
+ltiTargetLinkUrl: <span th:text="${lTI3Request.ltiTargetLinkUrl}"/></br>
+
+</body>
+</html>

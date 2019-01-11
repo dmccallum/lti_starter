@@ -14,8 +14,10 @@
  */
 package ltistarter;
 
+import ltistarter.lti.LTI3OAuthProviderProcessingFilter;
 import ltistarter.lti.LTIConsumerDetailsService;
 import ltistarter.lti.LTIDataService;
+import ltistarter.lti.LTIJWTService;
 import ltistarter.lti.LTIOAuthAuthenticationHandler;
 import ltistarter.lti.LTIOAuthProviderProcessingFilter;
 import ltistarter.oauth.MyConsumerDetailsService;
@@ -65,7 +67,7 @@ import javax.annotation.PostConstruct;
 // allows @Secured flag - proxyTargetClass = true causes this to die
 public class Application implements WebMvcConfigurer {
 
-    final static Logger log = LoggerFactory.getLogger(Application.class);
+    static final Logger log = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
@@ -146,6 +148,48 @@ public class Application implements WebMvcConfigurer {
                     .addFilterBefore(ltioAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)
                     .authorizeRequests().anyRequest().hasRole("LTI")
                     .and().csrf().disable().headers().frameOptions().disable();
+            //NOTE: the .headers().frameOptions().disable(); is done to work with my local sakai without https... but that should be
+            // configured correctly.
+
+            /*
+            http.antMatcher("/lti/**")
+                    .addFilterBefore(ltioAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)
+                    .authorizeRequests().anyRequest().hasRole("LTI")
+                    .and().csrf().disable(); // probably need https://github.com/spring-projects/spring-boot/issues/179
+            /**/
+        }
+    }
+
+    @Order(3) // VERY HIGH
+    @Configuration
+    public static class OICDAuthConfigurationAdapter extends WebSecurityConfigurerAdapter {
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            // this is open
+            http.antMatcher("/oidc/**").authorizeRequests().anyRequest().permitAll().and().csrf().disable().headers().frameOptions().disable();
+        }
+    }
+
+    @Configuration
+    @Order(7) // HIGH
+    public static class LTI3SecurityConfigurerAdapter extends WebSecurityConfigurerAdapter {
+        private LTI3OAuthProviderProcessingFilter lti3oAuthProviderProcessingFilter;
+        @Autowired
+        LTIDataService ltiDataService;
+        @Autowired
+        LTIJWTService ltijwtService;
+
+        @PostConstruct
+        public void init() {
+            lti3oAuthProviderProcessingFilter = new LTI3OAuthProviderProcessingFilter(ltiDataService,ltijwtService);
+        }
+
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            /**/
+            http.requestMatchers().antMatchers("/lti3/**").and()
+                    .addFilterBefore(lti3oAuthProviderProcessingFilter, UsernamePasswordAuthenticationFilter.class)
+                    .authorizeRequests().anyRequest().permitAll().and().csrf().disable().headers().frameOptions().disable();
             //NOTE: the .headers().frameOptions().disable(); is done to work with my local sakai without https... but that should be
             // configured correctly.
 

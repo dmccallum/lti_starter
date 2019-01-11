@@ -118,9 +118,7 @@ public class KeyRequestEntity extends BaseEntity {
         KeyRequestEntity that = (KeyRequestEntity) o;
 
         if (requestId != that.requestId) return false;
-        if (title != null ? !title.equals(that.title) : that.title != null) return false;
-
-        return true;
+        return title != null ? title.equals(that.title) : that.title == null;
     }
 
     @Override

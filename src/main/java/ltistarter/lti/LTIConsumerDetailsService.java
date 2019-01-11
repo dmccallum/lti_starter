@@ -36,18 +36,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class LTIConsumerDetailsService implements ConsumerDetailsService {
 
-    final static Logger log = LoggerFactory.getLogger(LTIConsumerDetailsService.class);
+    static final Logger log = LoggerFactory.getLogger(LTIConsumerDetailsService.class);
 
     @Autowired
     @SuppressWarnings("SpringJavaAutowiringInspection")
     LtiKeyRepository ltiKeyRepository;
 
     @Override
-    public ConsumerDetails loadConsumerByConsumerKey(String consumerKey) throws OAuthException {
+    public ConsumerDetails loadConsumerByConsumerKey(String consumerKey) {
         consumerKey = StringUtils.trimToNull(consumerKey);
-        assert StringUtils.isNotEmpty(consumerKey) : "consumerKey must be set and not null";
-        //HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-        //assert request != null : "request must be available for this to make sense";
+        if (!StringUtils.isNotEmpty(consumerKey)) throw new AssertionError("consumerKey must be set and not null");
         BaseConsumerDetails cd;
         LtiKeyEntity ltiKey = ltiKeyRepository.findByKeyKey(consumerKey);
         if (ltiKey == null) {
@@ -66,7 +64,7 @@ public class LTIConsumerDetailsService implements ConsumerDetailsService {
             cd.setRequiredToObtainAuthenticatedToken(false); // no token required (0-legged)
             cd.getAuthorities().add(new SimpleGrantedAuthority("ROLE_OAUTH")); // add the ROLE_OAUTH (can add others as well)
             cd.getAuthorities().add(new SimpleGrantedAuthority("ROLE_LTI"));
-            log.info("LTI check SUCCESS, consumer key: " + consumerKey);
+            log.info("LTI check SUCCESS, consumer key: {0}", consumerKey);
         }
         return cd;
     }

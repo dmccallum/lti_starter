@@ -17,6 +17,7 @@ package ltistarter.config;
 import ltistarter.model.ConfigEntity;
 import ltistarter.repository.ConfigRepository;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import java.text.MessageFormat;
 
 /**
  * Allows for easy access to the application configuration,
@@ -38,7 +40,11 @@ import javax.annotation.Resource;
 @Component
 public class ApplicationConfig implements ApplicationContextAware {
 
-    final static Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
+    static final Logger log = LoggerFactory.getLogger(ApplicationConfig.class);
+
+    private static final Object contextLock = new Object();
+    private static final Object configLock = new Object();
+
     private volatile static ApplicationContext context;
     private volatile static ApplicationConfig config;
 
@@ -56,17 +62,21 @@ public class ApplicationConfig implements ApplicationContextAware {
     @PostConstruct
     public void init() {
         log.info("INIT");
-        //log.info("profiles active: " + ArrayUtils.toString(env.getActiveProfiles()));
-        //log.info("profiles default: " + ArrayUtils.toString(env.getDefaultProfiles()));
         env.setActiveProfiles("dev", "testing");
-        config = this;
-        log.info("Config INIT: profiles active: " + ArrayUtils.toString(env.getActiveProfiles()));
+        synchronized (configLock) {
+            config = this;
+        }
+        log.info("Config INIT: profiles active: {0}.", ArrayUtils.toString(env.getActiveProfiles()));
     }
 
     @PreDestroy
     public void shutdown() {
-        context = null;
-        config = null;
+        synchronized (contextLock) {
+            context = null;
+        }
+        synchronized (configLock) {
+            config = null;
+        }
         log.info("DESTROY");
     }
 
@@ -76,59 +86,11 @@ public class ApplicationConfig implements ApplicationContextAware {
         return env;
     }
 
-    /**
-     * Return whether the given property key is available for resolution, i.e.,
-     * the value for the given key is not {@code null}.
-     */
-    public boolean containsProperty(String key) {
-        assert key != null;
-        boolean contains = env.containsProperty(key);
-        if (!contains) {
-            ConfigEntity ce = configRepository.findByName(key);
-            contains = (ce != null);
-        }
-        return contains;
-    }
-
-    /**
-     * Return the property value associated with the given key, or
-     * {@code defaultValue} if the key cannot be resolved.
-     *
-     * @param key          the property name to resolve
-     * @param defaultValue the default value to return if no value is found
-     */
-    public String getProperty(String key, String defaultValue) {
-        return getProperty(key, String.class, defaultValue);
-    }
-
-    /**
-     * Return the property value associated with the given key, or
-     * {@code defaultValue} if the key cannot be resolved.
-     *
-     * @param key          the property name to resolve
-     * @param targetType   the expected type of the property value
-     * @param defaultValue the default value to return if no value is found
-     */
-    public <T> T getProperty(String key, Class<T> targetType, T defaultValue) {
-        assert key != null;
-        assert targetType != null;
-        T property = env.getProperty(key, targetType, defaultValue);
-        // check for database override
-        ConfigEntity ce = configRepository.findByName(key);
-        if (ce != null) {
-            try {
-                property = conversionService.convert(ce.getValue(), targetType);
-            } catch (Exception e) {
-                property = defaultValue;
-                log.warn("Failed to convert config (" + ce.getValue() + ") into a (" + targetType + "), using default (" + defaultValue + "): " + e);
-            }
-        }
-        return property;
-    }
-
     @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        context = applicationContext;
+    public void setApplicationContext(ApplicationContext applicationContext) {
+        synchronized (contextLock) {
+            context = applicationContext;
+        }
     }
 
     /**

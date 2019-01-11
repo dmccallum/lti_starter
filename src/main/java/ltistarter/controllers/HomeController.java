@@ -33,10 +33,9 @@ public class HomeController extends BaseController {
 
     @RequestMapping(method = RequestMethod.GET)
     public String index(HttpServletRequest req, Principal principal, Model model) {
-        log.info("HOME: " + req);
+        log.info("HOME: {0}" , req);
         commonModelPopulate(req, principal, model);
         model.addAttribute("name", "HOME");
-        Counter featureCounter = Metrics.counter("home");
         return "home"; // name of the template
     }
 

@@ -41,22 +41,16 @@ public class FormController extends BaseController {
 
     @RequestMapping(value = "/login", method = RequestMethod.GET)
     public String login(HttpServletRequest req) {
-        log.info("login: " + req);
+        log.info("login: {0} " , req);
         return "login";
     }
 
     // Login form with error
     @RequestMapping(value = "/login", params = "error=true")
     public String loginError(HttpServletRequest req, Model model) {
-        log.info("login-error: " + req);
+        log.info("login-error: {0} " , req);
         model.addAttribute("loginError", true);
         return "login";
     }
-
-    /*
-    @RequestMapping("/logout")
-    public void logout(HttpServletRequest req) {
-        log.info("logout: " + req);
-    }*/
 
 }

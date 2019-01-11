@@ -14,12 +14,14 @@
  */
 package ltistarter.repository;
 
-import ltistarter.model.KeyRequestEntity;
+import ltistarter.model.RSAKeyEntity;
+import ltistarter.model.RSAKeyId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * NOTE: use of this interface magic makes all subclass-based (CGLIB) proxies fail
+ */
 @Transactional
-public interface KeyRequestRepository extends JpaRepository<KeyRequestEntity, Long> {
-
-    KeyRequestEntity findByUser_UserId(long userId);
+public interface RSAKeyRepository extends JpaRepository<RSAKeyEntity, RSAKeyId> {
 }

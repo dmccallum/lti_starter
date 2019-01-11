@@ -18,20 +18,11 @@
 <!--suppress CheckEmptyScriptTag -->
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>LTI Starter LOGIN</title>
+    <title>LTI 3 ERROR</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 </head>
 <body>
-<h1>Simple login page</h1>
-
-<p th:if="${param.error != null}">Wrong user or password</p>
-
-<form th:action="@{/form/login}" method="post">
-<label for="username">Username</label>:
-    <input type="text" keyId="username" name="username"/> <br/>
-    <label for="password">Password</label>:
-    <input type="password" keyId="password" name="password"/> <br/>
-    <input type="submit" value="Login"/>
-</form>
+<h1>Error trying to process the LTI 3 launch</h1>
+<p><span th:text="${Error}"/></p>
 </body>
 </html>
