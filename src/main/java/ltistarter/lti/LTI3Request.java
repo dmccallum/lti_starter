@@ -19,9 +19,6 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.AsymmetricJWK;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
@@ -42,7 +39,6 @@ import ltistarter.oauth.OAuthUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.util.ListUtils;
@@ -85,6 +81,11 @@ import java.util.Map;
 public class LTI3Request {
 
     static final Logger log = LoggerFactory.getLogger(LTI3Request.class);
+
+    //Those are used by the session.
+    public static final String LTI_SESSION_USER_ID = "user_id";
+    public static final String LTI_SESSION_USER_ROLE = "user_role";
+    public static final String LTI_SESSION_CONTEXT_ID = "context_id";
 
     //BASICS
     public static final String LTI_MESSAGE_TYPE = "https://purl.imsglobal.org/spec/lti/claim/message_type";
@@ -522,8 +523,20 @@ public class LTI3Request {
 
         // A sample that shows how we can store some of this in the session
         HttpSession session = this.httpServletRequest.getSession();
-        //session.setAttribute(LTI_USER_ID, ltiUserId);
-        session.setAttribute(LTI_CONTEXT_ID, ltiContextId);
+        session.setAttribute(LTI_SESSION_USER_ID, aud);
+        session.setAttribute(LTI_SESSION_CONTEXT_ID, ltiContextId);
+
+        //TODO, surely we need a more elaborated code here based in the huge amount of roles avaliable.
+        //In any case, this is for the session... we still have the full list of roles in the ltiRoles list
+        String normalizedRoleName = LTI_ROLE_GENERAL;
+        if (isRoleAdministrator()) {
+            normalizedRoleName = LTI_ROLE_ADMIN;
+        } else if (isRoleInstructor()) {
+            normalizedRoleName = LTI_ROLE_INSTRUCTOR;
+        } else if (isRoleLearner()) {
+            normalizedRoleName = LTI_ROLE_LEARNER;
+        }
+        session.setAttribute(LTI_SESSION_USER_ROLE, normalizedRoleName);
 
         String isComplete = checkCompleteLTIRequest();
         complete = (isComplete.equals("true"));
@@ -683,6 +696,19 @@ public class LTI3Request {
 
         return correctStr;
     }
+
+    public boolean isRoleAdministrator() {
+        return (ltiRoles != null && userRoleNumber >= 2);
+    }
+
+    public boolean isRoleInstructor() {
+        return (ltiRoles != null && userRoleNumber >= 1);
+    }
+
+    public boolean isRoleLearner() {
+        return (ltiRoles != null && ltiRoles.contains(LTI_ROLE_MEMBERSHIP_LEARNER));
+    }
+
 
     // STATICS
 

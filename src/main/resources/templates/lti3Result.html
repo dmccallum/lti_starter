@@ -67,5 +67,13 @@ ltiCustom is a map <span th:text="${lTI3Request.ltiCustom}"/></br></br>
 
 ltiTargetLinkUrl: <span th:text="${lTI3Request.ltiTargetLinkUrl}"/></br>
 
+<p><b>SESSION</b></p>
+
+We added some parameters in the session too:
+
+user_id: <span th:text="${#session.getAttribute('user_id')}"/></br>
+user_role: <span th:text="${#session.getAttribute('user_role')}"/></br>
+the Lti context id: <span th:text="${#session.getAttribute('context_id')}"/></br>
+
 </body>
 </html>
