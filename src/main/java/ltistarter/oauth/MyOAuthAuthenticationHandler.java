@@ -36,10 +36,10 @@ import java.util.HashSet;
 @Component
 public class MyOAuthAuthenticationHandler implements OAuthAuthenticationHandler {
 
-    final static Logger log = LoggerFactory.getLogger(MyOAuthAuthenticationHandler.class);
+    static final Logger log = LoggerFactory.getLogger(MyOAuthAuthenticationHandler.class);
 
-    public static SimpleGrantedAuthority userGA = new SimpleGrantedAuthority("ROLE_USER");
-    public static SimpleGrantedAuthority adminGA = new SimpleGrantedAuthority("ROLE_ADMIN");
+    public static final SimpleGrantedAuthority userGA = new SimpleGrantedAuthority("ROLE_USER");
+    public static final SimpleGrantedAuthority adminGA = new SimpleGrantedAuthority("ROLE_ADMIN");
 
     @PostConstruct
     public void init() {
@@ -71,13 +71,13 @@ public class MyOAuthAuthenticationHandler implements OAuthAuthenticationHandler 
                 authentication.getConsumerCredentials().getToken()
         );
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, authorities);
-        log.info("createAuthentication generated auth principal (" + principal + "): req=" + request);
+        log.info("createAuthentication generated auth principal ({}): req={}",principal, request);
         return auth;
     }
 
     public static class NamedOAuthPrincipal extends ConsumerCredentials implements Principal {
-        public String name;
-        public Collection<GrantedAuthority> authorities;
+        private String name;
+        private Collection<GrantedAuthority> authorities;
 
         public NamedOAuthPrincipal(String name, Collection<GrantedAuthority> authorities, String consumerKey, String signature, String signatureMethod, String signatureBaseString, String token) {
             super(consumerKey, signature, signatureMethod, signatureBaseString, token);
@@ -90,7 +90,7 @@ public class MyOAuthAuthenticationHandler implements OAuthAuthenticationHandler 
             return name;
         }
 
-        public Collection<? extends GrantedAuthority> getAuthorities() {
+        public Collection<GrantedAuthority> getAuthorities() {
             return authorities;
         }
 

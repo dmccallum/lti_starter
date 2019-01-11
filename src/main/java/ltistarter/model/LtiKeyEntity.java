@@ -70,7 +70,7 @@ public class LtiKeyEntity extends BaseEntity {
      * @param secret [OPTIONAL] secret (can be null)
      */
     public LtiKeyEntity(String key, String secret) {
-        assert StringUtils.isNotBlank(key);
+        if (!StringUtils.isNotBlank(key)) throw new AssertionError();
         this.keyKey = key;
         this.keySha256 = makeSHA256(key);
         if (StringUtils.isNotBlank(secret)) {
@@ -183,9 +183,7 @@ public class LtiKeyEntity extends BaseEntity {
 
         if (keyId != that.keyId) return false;
         if (keyKey != null ? !keyKey.equals(that.keyKey) : that.keyKey != null) return false;
-        if (keySha256 != null ? !keySha256.equals(that.keySha256) : that.keySha256 != null) return false;
-
-        return true;
+        return keySha256 != null ? keySha256.equals(that.keySha256) : that.keySha256 == null;
     }
 
     @Override

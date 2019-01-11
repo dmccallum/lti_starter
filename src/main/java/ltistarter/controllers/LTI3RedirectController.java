@@ -14,19 +14,15 @@
  */
 package ltistarter.controllers;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.SignatureException;
 import ltistarter.lti.LTI3Request;
 import ltistarter.lti.LTIJWTService;
-import ltistarter.lti.LTIRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import java.security.Key;
 import java.security.Principal;
 
 /**
@@ -45,7 +41,7 @@ public class LTI3RedirectController extends BaseController {
 
         String state = req.getParameter("state");
         try {
-            Jws<Claims> jwsState = ltijwtService.validateState(state);
+            ltijwtService.validateState(state);
             LTI3Request lti3Request = LTI3Request.getInstance();
             model.addAttribute("lTI3Request", lti3Request);
             return "lti3Result"; // name of the template

@@ -14,6 +14,8 @@
  */
 package ltistarter.model;
 
+import org.apache.commons.lang3.StringUtils;
+
 import javax.persistence.*;
 
 @Entity
@@ -34,7 +36,7 @@ public class ConfigEntity extends BaseEntity {
     }
 
     public ConfigEntity(String name, String value) {
-        assert name != null;
+        if (name == null) throw new AssertionError();
         this.name = name;
         this.value = value;
     }
@@ -71,9 +73,7 @@ public class ConfigEntity extends BaseEntity {
         ConfigEntity that = (ConfigEntity) o;
 
         if (id != that.id) return false;
-        if (!name.equals(that.name)) return false;
-
-        return true;
+        return (name.equals(that.name));
     }
 
     @Override

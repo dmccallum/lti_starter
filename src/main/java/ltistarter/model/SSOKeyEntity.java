@@ -53,7 +53,7 @@ public class SSOKeyEntity extends BaseEntity {
      * @param source the source of this key (google, facebook, linkedin, etc.)
      */
     public SSOKeyEntity(String key, String source) {
-        assert StringUtils.isNotBlank(key);
+        if (!StringUtils.isNotBlank(key)) throw new AssertionError();
         this.keyKey = key;
         this.keySha256 = makeSHA256(key);
         this.source = source;

@@ -67,7 +67,7 @@ import javax.annotation.PostConstruct;
 // allows @Secured flag - proxyTargetClass = true causes this to die
 public class Application implements WebMvcConfigurer {
 
-    final static Logger log = LoggerFactory.getLogger(Application.class);
+    static final Logger log = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

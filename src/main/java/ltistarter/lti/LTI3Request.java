@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwsHeader;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SigningKeyResolverAdapter;
 import ltistarter.config.ApplicationConfig;
@@ -44,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.thymeleaf.util.ListUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -53,6 +55,7 @@ import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.security.PublicKey;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -81,10 +84,7 @@ import java.util.Map;
  */
 public class LTI3Request {
 
-    @Autowired
-    LTIJWTService ltijwtService;
-
-    final static Logger log = LoggerFactory.getLogger(LTI3Request.class);
+    static final Logger log = LoggerFactory.getLogger(LTI3Request.class);
 
     //BASICS
     public static final String LTI_MESSAGE_TYPE = "https://purl.imsglobal.org/spec/lti/claim/message_type";
@@ -316,7 +316,7 @@ public class LTI3Request {
      * @return the current LTI3Request object if there is one available
      * @throws IllegalStateException if the LTI3Request cannot be obtained
      */
-    public static LTI3Request getInstanceOrDie() throws IllegalStateException {
+    public static LTI3Request getInstanceOrDie() {
         ServletRequestAttributes sra = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest req = sra.getRequest();
         if (req == null) {
@@ -338,7 +338,7 @@ public class LTI3Request {
                     throw new IllegalStateException("Error internal, no Dataservice available: " + req);
                 }
             } catch (Exception e) {
-                log.warn("Failure trying to create the LTIRequest: " + e);
+                log.warn("Failure trying to create the LTIRequest: {}" , e);
             }
         }
         if (ltiRequest == null) {
@@ -353,14 +353,15 @@ public class LTI3Request {
      * @param update  if true then update (or insert) the DB records for this request (else skip DB updating)
      * @throws IllegalStateException if this is not an LTI request
      */
-    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update) throws IllegalStateException {
-        assert request != null : "cannot make an LtiRequest without a request";
-        assert ltiDataService != null : "LTIDataService cannot be null";
+    public LTI3Request(HttpServletRequest request, LTIDataService ltiDataService, boolean update) {
+        if (request == null) throw new AssertionError("cannot make an LtiRequest without a request");
+        if (ltiDataService == null) throw new AssertionError("LTIDataService cannot be null");
         this.ltiDataService = ltiDataService;
         this.httpServletRequest = request;
         // extract the typical LTI data from the request
         String jwt = httpServletRequest.getParameter("id_token");
-        Jws<Claims> jws = Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
+        JwtParser parser = Jwts.parser();
+        parser.setSigningKeyResolver(new SigningKeyResolverAdapter() {
 
             // This is done because each state is signed with a different key based on the issuer... so
             // we don't know the key and we need to check it pre-extracting the claims and finding the kid
@@ -374,7 +375,6 @@ public class LTI3Request {
                     if (lti3KeyEntity.getJwksEndpoint() != null) {
                         try {
                             JWKSet publicKeys = JWKSet.load(new URL(lti3KeyEntity.getJwksEndpoint()));
-                            //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
                             JWK jwk = publicKeys.getKeyByKeyId(lti3KeyEntity.getPlatformKid());
                             PublicKey key = ((AsymmetricJWK) jwk).toPublicKey();
                             return key;
@@ -388,12 +388,13 @@ public class LTI3Request {
                     } else {
                         return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(lti3KeyEntity.getPlatformKid(), false)).get().getKeyKey());
                     }
-                } catch (GeneralSecurityException ex){
-                    log.error("Error generating the tool public key",ex);
+                } catch (GeneralSecurityException ex) {
+                    log.error("Error generating the tool public key", ex);
                     return null;
                 }
             }
-        }).parseClaimsJws(jwt);
+        });
+        Jws<Claims> jws = parser.parseClaimsJws(jwt);
         String isLTI3Request = isLTI3Request(jws);
         if (!isLTI3Request.equals("true")) {
             throw new IllegalStateException("Request is not a valid LTI3 request: " + isLTI3Request);
@@ -401,7 +402,7 @@ public class LTI3Request {
         String processRequestParameters = processRequestParameters(request,jws);
         if (!processRequestParameters.equals("true")){
             throw new IllegalStateException("Request is not a valid LTI3 request: " + processRequestParameters);
-        };
+        }
 
         //TODO
         ltiDataService.loadLTIDataFromDB(this);
@@ -456,48 +457,41 @@ public class LTI3Request {
         ltiRoleScopeMentor = getListFromLTIRequest(jws,LTI_ROLE_SCOPE_MENTOR);
 
         ltiResourceLink = getMapFromLTIRequest(jws,LTI_LINK);
-        if (ltiResourceLink != null) {
-            ltiLinkId = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_ID);
-            ltiLinkDescription = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_DESC);
-            ltiLinkTitle = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_TITLE);
-        }
+        ltiLinkId = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_ID);
+        ltiLinkDescription = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_DESC);
+        ltiLinkTitle = getStringFromLTIRequestMap(ltiResourceLink,LTI_LINK_TITLE);
+
         ltiContext = getMapFromLTIRequest(jws,LTI_CONTEXT);
-        if (ltiContext != null) {
-            ltiContextId = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_ID);
-            ltiContextLabel = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_LABEL);
-            ltiContextTitle = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_TITLE);
-            ltiContextType = getListFromLTIRequestMap(ltiContext,LTI_CONTEXT_TYPE);
-        }
+        ltiContextId = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_ID);
+        ltiContextLabel = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_LABEL);
+        ltiContextTitle = getStringFromLTIRequestMap(ltiContext,LTI_CONTEXT_TITLE);
+        ltiContextType = getListFromLTIRequestMap(ltiContext,LTI_CONTEXT_TYPE);
+
 
         ltiToolPlatform = getMapFromLTIRequest(jws,LTI_PLATFORM);
-        if (ltiToolPlatform != null) {
-            ltiToolPlatformName = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_NAME);
-            ltiToolPlatformContactEmail = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_CONTACT_EMAIL);
-            ltiToolPlatformDesc = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_DESC);
-            ltiToolPlatformUrl = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_URL);
-            ltiToolPlatformProduct = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_PRODUCT);
-            ltiToolPlatformFamilyCode = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_PRODUCT_FAMILY_CODE);
-            ltiToolPlatformVersion = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_VERSION);
-        }
+        ltiToolPlatformName = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_NAME);
+        ltiToolPlatformContactEmail = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_CONTACT_EMAIL);
+        ltiToolPlatformDesc = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_DESC);
+        ltiToolPlatformUrl = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_URL);
+        ltiToolPlatformProduct = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_PRODUCT);
+        ltiToolPlatformFamilyCode = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_PRODUCT_FAMILY_CODE);
+        ltiToolPlatformVersion = getStringFromLTIRequestMap(ltiToolPlatform,LTI_PLATFORM_VERSION);
+
 
         ltiEndpoint = getMapFromLTIRequest(jws,LTI_ENDPOINT);
-        if (ltiEndpoint != null) {
-            ltiEndpointScope = getListFromLTIRequestMap(ltiEndpoint,LTI_ENDPOINT_SCOPE);
-            ltiEndpointLineItems = getStringFromLTIRequestMap(ltiEndpoint,LTI_ENDPOINT_LINEITEMS);
-        }
+        ltiEndpointScope = getListFromLTIRequestMap(ltiEndpoint,LTI_ENDPOINT_SCOPE);
+        ltiEndpointLineItems = getStringFromLTIRequestMap(ltiEndpoint,LTI_ENDPOINT_LINEITEMS);
+
 
         ltiNamesRoleService = getMapFromLTIRequest(jws,LTI_NAMES_ROLE_SERVICE);
-        if (ltiNamesRoleService != null) {
-            ltiNamesRoleServiceContextMembershipsUrl = getStringFromLTIRequestMap(ltiNamesRoleService,LTI_NAMES_ROLE_SERVICE_CONTEXT);
-            ltiNamesRoleServiceVersions = getListFromLTIRequestMap(ltiNamesRoleService,LTI_NAMES_ROLE_SERVICE_VERSIONS);
-        }
+        ltiNamesRoleServiceContextMembershipsUrl = getStringFromLTIRequestMap(ltiNamesRoleService,LTI_NAMES_ROLE_SERVICE_CONTEXT);
+        ltiNamesRoleServiceVersions = getListFromLTIRequestMap(ltiNamesRoleService,LTI_NAMES_ROLE_SERVICE_VERSIONS);
 
         ltiCaliperEndpointService = getMapFromLTIRequest(jws,LTI_CALIPER_ENDPOINT_SERVICE);
-        if (ltiCaliperEndpointService != null) {
-            ltiCaliperEndpointServiceScopes = getListFromLTIRequestMap(ltiCaliperEndpointService, LTI_CALIPER_ENDPOINT_SERVICE_SCOPES);
-            ltiCaliperEndpointServiceUrl = getStringFromLTIRequestMap(ltiCaliperEndpointService,LTI_CALIPER_ENDPOINT_SERVICE_URL);
-            ltiCaliperEndpointServiceSessionId = getStringFromLTIRequestMap(ltiCaliperEndpointService,LTI_CALIPER_ENDPOINT_SERVICE_SESSION_ID);
-        }
+        ltiCaliperEndpointServiceScopes = getListFromLTIRequestMap(ltiCaliperEndpointService, LTI_CALIPER_ENDPOINT_SERVICE_SCOPES);
+        ltiCaliperEndpointServiceUrl = getStringFromLTIRequestMap(ltiCaliperEndpointService,LTI_CALIPER_ENDPOINT_SERVICE_URL);
+        ltiCaliperEndpointServiceSessionId = getStringFromLTIRequestMap(ltiCaliperEndpointService,LTI_CALIPER_ENDPOINT_SERVICE_SESSION_ID);
+
 
         iss = jws.getBody().getIssuer();
         aud = jws.getBody().getAudience();
@@ -508,7 +502,7 @@ public class LTI3Request {
 
         lti11LegacyUserId = getStringFromLTIRequest(jws,LTI_11_LEGACY_USER_ID);
 
-        String locale = getStringFromLTIRequest(jws,LTI_PRES_LOCALE);
+        locale = getStringFromLTIRequest(jws,LTI_PRES_LOCALE);
         if (locale == null) {
             ltiPresLocale = Locale.getDefault();
         } else {
@@ -516,12 +510,11 @@ public class LTI3Request {
         }
 
         ltiLaunchPresentation = getMapFromLTIRequest(jws,LTI_LAUNCH_PRESENTATION);
-        if (ltiLaunchPresentation != null) {
-            ltiPresHeight = getIntegerFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_HEIGHT);
-            ltiPresWidth = getIntegerFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_WIDTH);
-            ltiPresReturnUrl = getStringFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_RETURN_URL);
-            ltiPresTarget = getStringFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_TARGET);
-        }
+        ltiPresHeight = getIntegerFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_HEIGHT);
+        ltiPresWidth = getIntegerFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_WIDTH);
+        ltiPresReturnUrl = getStringFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_RETURN_URL);
+        ltiPresTarget = getStringFromLTIRequestMap(ltiLaunchPresentation,LTI_PRES_TARGET);
+
         ltiCustom = getMapFromLTIRequest(jws,LTI_CUSTOM);
         ltiExtension = getMapFromLTIRequest(jws,LTI_EXTENSION);
 
@@ -533,14 +526,16 @@ public class LTI3Request {
         session.setAttribute(LTI_CONTEXT_ID, ltiContextId);
 
         String isComplete = checkCompleteLTIRequest();
+        complete = (isComplete.equals("true"));
         String isCorrect = checkCorrectLTIRequest();
-
-        if (isComplete.equals("true") && isCorrect.equals("true")) {
+        correct = (isCorrect.equals("true"));
+        // This is a surely bad way to display the error... can be improved.
+        if (complete && correct) {
             return "true";
         } else {
-            if (isComplete.equals("true")) {
+            if (complete) {
                 isComplete = "";
-            } else if (isCorrect.equals("true")) {
+            } else if (correct) {
                 isCorrect = "";
             }
             return isComplete + isCorrect;
@@ -568,7 +563,7 @@ public class LTI3Request {
             try {
                 return Integer.valueOf(map.get(integerToGet).toString());
             }catch (Exception ex) {
-                log.error("No integer when expected in: " + integerToGet + ". Returning null");
+                log.error("No integer when expected in: {0}. Returning null", integerToGet);
                 return null;
             }
         } else {
@@ -581,11 +576,11 @@ public class LTI3Request {
             try {
                 return (List)map.get(listToGet);
             }catch (Exception ex) {
-                log.error("No list when expected in: " + listToGet + ". Returning null");
-                return null;
+                log.error("No list when expected in: {0} Returning null", listToGet);
+                return new ArrayList<>();
             }
         } else {
-            return null;
+            return new ArrayList<>();
         }
     }
 
@@ -594,11 +589,11 @@ public class LTI3Request {
             try {
                 return jws.getBody().get(mapToGet, Map.class);
             }catch (Exception ex) {
-                log.error("No map integer when expected in: " + mapToGet + ". Returning null");
-                return null;
+                log.error("No map integer when expected in: {0}. Returning null", mapToGet);
+                return new HashMap<>();
             }
         } else {
-            return null;
+            return new HashMap<>();
         }
     }
 
@@ -608,10 +603,10 @@ public class LTI3Request {
                 return jws.getBody().get(listToGet, List.class);
             }catch (Exception ex) {
                 log.error("No map integer when expected in: " + listToGet + ". Returning null");
-                return null;
+                return new ArrayList<>();
             }
         } else {
-            return null;
+            return new ArrayList<>();
         }
     }
 
@@ -624,11 +619,7 @@ public class LTI3Request {
      * @return true if complete
      */
     protected boolean checkCompleteLTIRequest(boolean objects) {
-        if (objects && key != null && context != null && link != null && user != null) {
-            return true;
-        } else {
-            return false;
-        }
+        return objects && key != null && context != null && link != null && user != null;
     }
 
 
@@ -640,37 +631,37 @@ public class LTI3Request {
      * @return true if complete
      */
 
-    protected String checkCompleteLTIRequest() {
+    String checkCompleteLTIRequest() {
 
-        String complete = "";
+        String completStr = "";
 
         if (StringUtils.isEmpty(ltiDeploymentId)) {
-            complete += " Lti Deployment Id is empty.\n ";
+            completStr += " Lti Deployment Id is empty.\n ";
         }
         if (ltiResourceLink == null || ltiResourceLink.size() == 0) {
-            complete += " Lti Resource Link is empty.\n ";
+            completStr += " Lti Resource Link is empty.\n ";
         } else {
             if (StringUtils.isEmpty(ltiLinkId)) {
-                complete += " Lti Resource Link ID is empty.\n ";
+                completStr += " Lti Resource Link ID is empty.\n ";
             }
         }
         if (StringUtils.isEmpty(sub)) {
-            complete += " User (sub) is empty.\n ";
+            completStr += " User (sub) is empty.\n ";
         }
-        if (ltiRoles == null || ltiRoles.size() == 0) {
-            complete += " Lti Roles is empty.\n ";
+        if (ltiRoles == null || ListUtils.isEmpty(ltiRoles)) {
+            completStr += " Lti Roles is empty.\n ";
         }
         if (exp == null ){
-            complete += " Exp is empty or invalid.\n ";
+            completStr += " Exp is empty or invalid.\n ";
         }
         if (iat == null ){
-            complete += " Iat is empty or invalid.\n ";
+            completStr += " Iat is empty or invalid.\n ";
         }
 
-        if (complete.equals("")) {
+        if (completStr.equals("")) {
             return "true";
         } else {
-            return complete;
+            return completStr;
         }
     }
 
@@ -681,16 +672,16 @@ public class LTI3Request {
      */
     //TODO update this to check the really complete conditions...!
 
-    protected String checkCorrectLTIRequest() {
+    private String checkCorrectLTIRequest() {
 
-        String correct = "true";
+        String correctStr = "true";
 
 
         //TODO check things as:
         // Roles are correct roles
         //
 
-        return correct;
+        return correctStr;
     }
 
     // STATICS
@@ -736,61 +727,6 @@ public class LTI3Request {
             }
         }
         return roleNum;
-    }
-
-
-    /**
-     * Use Jackson to convert some JSON to a map
-     *
-     * @param json input JSON
-     * @return the map
-     * @throws IllegalArgumentException if the json is invalid
-     */
-    public static Map<String, Object> jsonToMap(final String json) {
-        if (StringUtils.isBlank(json)) {
-            throw new IllegalArgumentException("Invalid json: blank/empty/null string");
-        }
-        Map<String, Object> map = new HashMap<>();
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            //noinspection unchecked
-            map = mapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid json: " + e.getMessage(), e);
-        }
-        return map;
-    }
-
-    /**
-     * Use Jackson to check if some JSON is valid
-     *
-     * @param json a chunk of json
-     * @return true if valid
-     */
-    public static boolean isValidJSON(final String json) {
-        boolean valid;
-        if (StringUtils.isBlank(json)) {
-            return false;
-        }
-        try {
-            JsonParser parser = null;
-            try {
-                parser = new ObjectMapper().getFactory().createParser(json);
-                //noinspection StatementWithEmptyBody
-                while (parser.nextToken() != null) {
-                }
-                valid = true;
-            } catch (JsonParseException jpe) {
-                valid = false;
-            } finally {
-                if (parser != null) {
-                    parser.close();
-                }
-            }
-        } catch (IOException e) {
-            valid = false;
-        }
-        return valid;
     }
 
     // GETTERS

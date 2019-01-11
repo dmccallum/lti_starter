@@ -57,8 +57,8 @@ public class LtiLinkEntity extends BaseEntity {
      * @param title   OPTIONAL title of this link (null for none)
      */
     public LtiLinkEntity(String linkKey, LtiContextEntity context, String title) {
-        assert StringUtils.isNotBlank(linkKey);
-        assert context != null;
+        if (!StringUtils.isNotBlank(linkKey)) throw new AssertionError();
+        if (context == null) throw new AssertionError();
         this.linkKey = linkKey;
         this.linkSha256 = makeSHA256(linkKey);
         this.context = context;
@@ -138,9 +138,7 @@ public class LtiLinkEntity extends BaseEntity {
 
         if (linkId != that.linkId) return false;
         if (linkKey != null ? !linkKey.equals(that.linkKey) : that.linkKey != null) return false;
-        if (linkSha256 != null ? !linkSha256.equals(that.linkSha256) : that.linkSha256 != null) return false;
-
-        return true;
+        return linkSha256 != null ? linkSha256.equals(that.linkSha256) : that.linkSha256 == null;
     }
 
     @Override

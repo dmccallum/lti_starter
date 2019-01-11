@@ -31,10 +31,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class MyConsumerDetailsService implements ConsumerDetailsService {
 
-    final static Logger log = LoggerFactory.getLogger(MyConsumerDetailsService.class);
+    static final Logger log = LoggerFactory.getLogger(MyConsumerDetailsService.class);
 
     @Override
-    public ConsumerDetails loadConsumerByConsumerKey(String consumerKey) throws OAuthException {
+    public ConsumerDetails loadConsumerByConsumerKey(String consumerKey) {
         BaseConsumerDetails cd;
         // NOTE: really lookup the key and secret, for the sample here we just hardcoded
         if ("key".equals(consumerKey)) {
@@ -45,7 +45,7 @@ public class MyConsumerDetailsService implements ConsumerDetailsService {
             cd.setConsumerName("Sample");
             cd.setRequiredToObtainAuthenticatedToken(false); // no token required (0-legged)
             cd.getAuthorities().add(new SimpleGrantedAuthority("ROLE_OAUTH")); // add the ROLE_OAUTH (can add others as well)
-            log.info("OAuth check SUCCESS, consumer key: " + consumerKey);
+            log.info("OAuth check SUCCESS, consumer key: {0} ", consumerKey);
         } else {
             // deny - failed to match
             throw new OAuthException("For this example, key must be 'key'");

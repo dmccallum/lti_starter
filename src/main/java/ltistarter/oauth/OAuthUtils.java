@@ -40,6 +40,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Map;
 import java.util.Base64;
 
+//TODO use the Bouncy Castle library for this instead the sun security one.
 import sun.security.util.DerInputStream;
 import sun.security.util.DerValue;
 
@@ -49,15 +50,18 @@ import sun.security.util.DerValue;
  */
 public class OAuthUtils {
 
-    final static Logger log = LoggerFactory.getLogger(OAuthUtils.class);
+    static final Logger log = LoggerFactory.getLogger(OAuthUtils.class);
 
     //This is added to deal with the PCKS#1 key that IMS is providing in their test platform.
-    //static { Security.addProvider(new BouncyCastleProvider()); }
+
+    private OAuthUtils() {
+        throw new IllegalStateException("Utility class");
+    }
 
     public static ResponseEntity sendOAuth1Request(String url, String consumerKey, String sharedSecret, Map<String, String> params, Map<String, String> headers) {
-        assert url != null;
-        assert consumerKey != null;
-        assert sharedSecret != null;
+        if (url == null) throw new AssertionError();
+        if (consumerKey == null) throw new AssertionError();
+        if (sharedSecret == null) throw new AssertionError();
         BaseProtectedResourceDetails prd = new BaseProtectedResourceDetails();
         prd.setId("oauth");
         prd.setConsumerKey(consumerKey);
@@ -65,14 +69,13 @@ public class OAuthUtils {
         prd.setAdditionalParameters(params);
         prd.setAdditionalRequestHeaders(headers);
         OAuthRestTemplate restTemplate = new OAuthRestTemplate(prd);
-        ResponseEntity<String> response = restTemplate.postForEntity(url, params, String.class, (Map<String, ?>) null);
-        return response;
+        return restTemplate.postForEntity(url, params, String.class, (Map<String, ?>) null);
     }
 
     public static ResponseEntity sendOAuth2Request(String url, String clientId, String clientSecret, String accessTokenURI, Map<String, String> params) {
-        assert url != null;
-        assert clientId != null;
-        assert clientSecret != null;
+        if (url == null) throw new AssertionError();
+        if (clientId == null) throw new AssertionError();
+        if (clientSecret == null) throw new AssertionError();
         AuthorizationCodeAccessTokenProvider provider = new AuthorizationCodeAccessTokenProvider();
         BaseOAuth2ProtectedResourceDetails resource = new BaseOAuth2ProtectedResourceDetails();
         resource.setClientAuthenticationScheme(AuthenticationScheme.form);
@@ -82,8 +85,7 @@ public class OAuthUtils {
         resource.setGrantType("access");
         OAuth2AccessToken accessToken = provider.obtainAccessToken(resource, new DefaultAccessTokenRequest());
         OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(resource, new DefaultOAuth2ClientContext(accessToken));
-        ResponseEntity<String> response = restTemplate.postForEntity(url, params, String.class, (Map<String, ?>) null);
-        return response;
+        return restTemplate.postForEntity(url, params, String.class, (Map<String, ?>) null);
     }
 
     /*public static PrivateKey loadPrivateKey(String key) throws GeneralSecurityException {
@@ -103,7 +105,7 @@ public class OAuthUtils {
     }*/
 
     public static RSAPublicKey loadPublicKey(String key) throws GeneralSecurityException {
-        String publicKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");;
+        String publicKeyContent = key.replaceAll("\\n", "").replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "");
         KeyFactory kf = KeyFactory.getInstance("RSA");
         X509EncodedKeySpec keySpecX509 = new X509EncodedKeySpec(Base64.getDecoder().decode(publicKeyContent));
         RSAPublicKey pubKey = (RSAPublicKey) kf.generatePublic(keySpecX509);
@@ -142,7 +144,6 @@ public class OAuthUtils {
                 throw new GeneralSecurityException("Could not parse a PKCS1 private key.");
             }
 
-            // skip version seq[0];
             BigInteger modulus = seq[1].getBigInteger();
             BigInteger publicExp = seq[2].getBigInteger();
             BigInteger privateExp = seq[3].getBigInteger();

@@ -61,7 +61,7 @@ public class ProfileEntity extends BaseEntity {
     }
 
     public ProfileEntity(String profileKey, Date loginAt, String email) {
-        assert profileKey != null;
+        if (profileKey == null) throw new AssertionError();
         if (loginAt == null) {
             loginAt = new Date();
         }
@@ -168,10 +168,7 @@ public class ProfileEntity extends BaseEntity {
 
         if (profileId != that.profileId) return false;
         if (profileKey != null ? !profileKey.equals(that.profileKey) : that.profileKey != null) return false;
-        if (profileSha256 != null ? !profileSha256.equals(that.profileSha256) : that.profileSha256 != null)
-            return false;
-
-        return true;
+        return profileSha256 != null ? profileSha256.equals(that.profileSha256) : that.profileSha256 == null;
     }
 
     @Override

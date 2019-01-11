@@ -18,8 +18,6 @@ import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.MapsId;
 import javax.persistence.OneToOne;
 import javax.persistence.PrimaryKeyJoinColumn;
 import javax.persistence.Table;
@@ -140,6 +138,20 @@ public class Lti3KeyEntity extends BaseEntity {
         this.ltiKeyEntity = ltiKeyEntity;
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Lti3KeyEntity that = (Lti3KeyEntity) o;
+
+        if (keyId != that.keyId) return false;
+        if (iss != null ? !iss.equals(that.iss) : that.iss != null) return false;
+        if (clientId != null ? !clientId.equals(that.clientId) : that.clientId != null) return false;
+        return deploymentId != null ? deploymentId.equals(that.deploymentId) : that.deploymentId == null;
+    }
+
     @Override
     public int hashCode() {
         int result = (int) keyId;
@@ -152,4 +164,6 @@ public class Lti3KeyEntity extends BaseEntity {
         result = 31 * result + (platformKid != null ? platformKid.hashCode() : 0);
         return result;
     }
+
+
 }

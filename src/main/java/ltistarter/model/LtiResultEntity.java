@@ -71,9 +71,9 @@ public class LtiResultEntity extends BaseEntity {
      * @param grade       [OPTIONAL] the grade value
      */
     public LtiResultEntity(String sourcedid, LtiUserEntity user, LtiLinkEntity link, Date retrievedAt, Float grade) {
-        assert StringUtils.isNotBlank(sourcedid);
-        assert user != null;
-        assert link != null;
+        if (!StringUtils.isNotBlank(sourcedid)) throw new AssertionError();
+        if (user == null) throw new AssertionError();
+        if (link == null) throw new AssertionError();
         if (retrievedAt == null) {
             retrievedAt = new Date();
         }
@@ -182,10 +182,7 @@ public class LtiResultEntity extends BaseEntity {
 
         if (resultId != that.resultId) return false;
         if (sourcedid != null ? !sourcedid.equals(that.sourcedid) : that.sourcedid != null) return false;
-        if (sourcedidSha256 != null ? !sourcedidSha256.equals(that.sourcedidSha256) : that.sourcedidSha256 != null)
-            return false;
-
-        return true;
+        return sourcedidSha256 != null ? sourcedidSha256.equals(that.sourcedidSha256) : that.sourcedidSha256 == null;
     }
 
     @Override

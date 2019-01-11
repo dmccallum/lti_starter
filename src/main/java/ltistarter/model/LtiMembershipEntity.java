@@ -20,8 +20,8 @@ import javax.persistence.*;
 @Table(name = "lti_membership")
 public class LtiMembershipEntity extends BaseEntity {
 
-    public final static int ROLE_STUDENT = 0;
-    public final static int ROLE_INTRUCTOR = 1;
+    public static final int ROLE_STUDENT = 0;
+    public static final int ROLE_INTRUCTOR = 1;
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -45,8 +45,8 @@ public class LtiMembershipEntity extends BaseEntity {
     }
 
     public LtiMembershipEntity(LtiContextEntity context, LtiUserEntity user, Integer role) {
-        assert user != null;
-        assert context != null;
+        if (user == null) throw new AssertionError();
+        if (context == null) throw new AssertionError();
         this.user = user;
         this.context = context;
         this.role = role;
@@ -102,9 +102,7 @@ public class LtiMembershipEntity extends BaseEntity {
         if (context.getContextId() != that.context.getContextId()) return false;
         if (membershipId != that.membershipId) return false;
         if (user.getUserId() != that.user.getUserId()) return false;
-        if (role != null ? !role.equals(that.role) : that.role != null) return false;
-
-        return true;
+        return role != null ? role.equals(that.role) : that.role == null;
     }
 
     @Override

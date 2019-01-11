@@ -43,7 +43,7 @@ import javax.annotation.PostConstruct;
 // only load this when running the application (not for unit tests which have the 'testing' profile active)
 public class DatabasePreload {
 
-    final static Logger log = LoggerFactory.getLogger(DatabasePreload.class);
+    static final Logger log = LoggerFactory.getLogger(DatabasePreload.class);
 
     @Autowired
     ApplicationConfig applicationConfig;
@@ -145,7 +145,7 @@ public class DatabasePreload {
             key1 = ltiKeyRepository.save(key1);
             iss1.setKeyId(key1.getKeyId());
             key1.setLti3KeyEntity(iss1);
-            key1 = ltiKeyRepository.saveAndFlush(key1);
+            ltiKeyRepository.saveAndFlush(key1);
 
             Lti3KeyEntity iss2 = new Lti3KeyEntity();
             iss2.setClientId("imstestuser");

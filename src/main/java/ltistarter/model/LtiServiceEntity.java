@@ -54,8 +54,8 @@ public class LtiServiceEntity extends BaseEntity {
      * @param format     [OPTIONAL] format or null if there is none
      */
     public LtiServiceEntity(String serviceKey, LtiKeyEntity key, String format) {
-        assert StringUtils.isNotBlank(serviceKey);
-        assert key != null;
+        if (!StringUtils.isNotBlank(serviceKey)) throw new AssertionError();
+        if (key == null) throw new AssertionError();
         this.serviceKey = serviceKey;
         this.serviceSha256 = makeSHA256(serviceKey);
         this.ltiKey = key;
@@ -127,10 +127,7 @@ public class LtiServiceEntity extends BaseEntity {
 
         if (serviceId != that.serviceId) return false;
         if (serviceKey != null ? !serviceKey.equals(that.serviceKey) : that.serviceKey != null) return false;
-        if (serviceSha256 != null ? !serviceSha256.equals(that.serviceSha256) : that.serviceSha256 != null)
-            return false;
-
-        return true;
+        return serviceSha256 != null ? serviceSha256.equals(that.serviceSha256) : that.serviceSha256 == null;
     }
 
     @Override

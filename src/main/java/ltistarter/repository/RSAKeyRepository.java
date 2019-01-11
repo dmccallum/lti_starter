@@ -14,13 +14,10 @@
  */
 package ltistarter.repository;
 
-import ltistarter.model.LtiKeyEntity;
 import ltistarter.model.RSAKeyEntity;
 import ltistarter.model.RSAKeyId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 /**
  * NOTE: use of this interface magic makes all subclass-based (CGLIB) proxies fail

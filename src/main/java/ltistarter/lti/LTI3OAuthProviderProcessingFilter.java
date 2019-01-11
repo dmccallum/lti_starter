@@ -41,7 +41,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
     LTIDataService ltiDataService;
     LTIJWTService ltijwtService;
 
-    final static Logger log = LoggerFactory.getLogger(LTI3OAuthProviderProcessingFilter.class);
+    static final Logger log = LoggerFactory.getLogger(LTI3OAuthProviderProcessingFilter.class);
 
     /**
      * We need to load the data service to find the iss configurations and extract the keys.
@@ -49,9 +49,9 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
      */
     public LTI3OAuthProviderProcessingFilter(LTIDataService ltiDataService, LTIJWTService ltijwtService ) {
         super();
-        assert ltiDataService != null;
+        if (ltiDataService == null) throw new AssertionError();
         this.ltiDataService = ltiDataService;
-        assert ltijwtService != null;
+        if (ltijwtService == null) throw new AssertionError();
         this.ltijwtService = ltijwtService;
     }
 
@@ -79,7 +79,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             // This is not a requirement in LTI, it is just a way to do it that I've implemented, but each one can use the
             // state in a different way. It can be just an ID pointing to some DB info... it doesn't need to be JWT at all.
             String state = httpServletRequest.getParameter("state");
-            Jws<Claims> jwsState= ltijwtService.validateState(state);
+            ltijwtService.validateState(state);
 
             //Once we have the state validated we have the key to check the JWT signature from the id_token,
             // and extract all the values in the LTI3Request object.
@@ -104,7 +104,7 @@ public class LTI3OAuthProviderProcessingFilter extends GenericFilterBean {
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             log.debug("Exception " + eje.getMessage(), eje);
         } catch (SignatureException ex) {
-            log.info("Invalid JWT signature: " + ex.getMessage());
+            log.info("Invalid JWT signature: {0}" , ex.getMessage());
             log.debug("Exception " + ex.getMessage(), ex);
             ((HttpServletResponse) servletResponse).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }

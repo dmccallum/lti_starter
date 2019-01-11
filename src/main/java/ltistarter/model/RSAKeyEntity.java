@@ -20,13 +20,7 @@ import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import java.util.Set;
 
 @Entity
 @Table(name = "rsa_key")
@@ -51,21 +45,21 @@ public class RSAKeyEntity extends BaseEntity {
 
     /**
      * @param kid  the key id
-     * @param public_key  the plain text public key
-     * @param private_key the plain text private key
+     * @param publicKey  the plain text public key
+     * @param privateKey the plain text private key
      */
-    public RSAKeyEntity(String kid, Boolean tool, String public_key, String private_key) {
+    public RSAKeyEntity(String kid, Boolean tool, String publicKey, String privateKey) {
         RSAKeyId rsaKeyId = new RSAKeyId(kid,tool);
         this.kid = rsaKeyId;
-        this.keyKey = public_key;
-        if (StringUtils.isNotEmpty(public_key)) {
-            this.publicKeySha256 = makeSHA256(public_key);
+        this.keyKey = publicKey;
+        if (StringUtils.isNotEmpty(publicKey)) {
+            this.publicKeySha256 = makeSHA256(publicKey);
         } else {
             this.publicKeySha256 = null;
         }
-        this.privateKeyKey = private_key;
-        if (StringUtils.isNotEmpty(private_key)) {
-            this.privateKeySha256 = makeSHA256(private_key);
+        this.privateKeyKey = privateKey;
+        if (StringUtils.isNotEmpty(privateKey)) {
+            this.privateKeySha256 = makeSHA256(privateKey);
         } else {
             this.privateKeySha256 = null;
         }
@@ -123,9 +117,7 @@ public class RSAKeyEntity extends BaseEntity {
         if (keyKey != null ? !keyKey.equals(that.keyKey) : that.keyKey != null) return false;
         if (publicKeySha256 != null ? !publicKeySha256.equals(that.publicKeySha256) : that.publicKeySha256 != null) return false;
         if (privateKeyKey != null ? !privateKeyKey.equals(that.privateKeyKey) : that.privateKeyKey != null) return false;
-        if (privateKeySha256 != null ? !privateKeySha256.equals(that.privateKeySha256) : that.privateKeySha256 != null) return false;
-
-        return true;
+        return privateKeySha256 != null ? privateKeySha256.equals(that.privateKeySha256) : that.privateKeySha256 == null;
     }
 
     @Override

@@ -31,18 +31,12 @@ import java.io.IOException;
 @Component
 public class MyOAuthProcessingFilterEntryPointImpl extends OAuthProcessingFilterEntryPoint {
 
-    final static Logger log = LoggerFactory.getLogger(MyOAuthProcessingFilterEntryPointImpl.class);
+    static final Logger log = LoggerFactory.getLogger(MyOAuthProcessingFilterEntryPointImpl.class);
 
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-        log.info("OAuth FILTER Failure (commence), req=" + request + ", ex=" + authException);
+        log.info("OAuth FILTER Failure (commence), req= {}, ex={}" ,request ,authException);
         // Called when there is an OAuth Auth failure, authException may be InsufficientAuthenticationException
         super.commence(request, response, authException);
-        /*
-        response.setCharacterEncoding("UTF-8");
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType(MediaType.APPLICATION_JSON.getType());
-        response.getWriter().println("{\"Unauthorized\":\"" + authException + "\"}");
-        */
     }
 }

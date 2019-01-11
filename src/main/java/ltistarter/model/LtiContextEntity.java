@@ -55,8 +55,8 @@ public class LtiContextEntity extends BaseEntity {
     }
 
     public LtiContextEntity(String contextKey, LtiKeyEntity ltiKey, String title, String json) {
-        assert StringUtils.isNotBlank(contextKey);
-        assert ltiKey != null;
+        if (!StringUtils.isNotBlank(contextKey)) throw new AssertionError();
+        if (ltiKey == null) throw new AssertionError();
         this.contextKey = contextKey;
         this.contextSha256 = makeSHA256(contextKey);
         this.ltiKey = ltiKey;
@@ -145,10 +145,7 @@ public class LtiContextEntity extends BaseEntity {
 
         if (contextId != that.contextId) return false;
         if (contextKey != null ? !contextKey.equals(that.contextKey) : that.contextKey != null) return false;
-        if (contextSha256 != null ? !contextSha256.equals(that.contextSha256) : that.contextSha256 != null)
-            return false;
-
-        return true;
+        return contextSha256 != null ? contextSha256.equals(that.contextSha256) : that.contextSha256 == null;
     }
 
     @Override

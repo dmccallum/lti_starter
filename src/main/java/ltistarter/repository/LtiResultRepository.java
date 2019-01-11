@@ -23,16 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Transactional
 public interface LtiResultRepository extends JpaRepository<LtiResultEntity, Long> {
-    /* Add custom crud methods here
-     * If you need a custom implementation of the methods then see docs for steps to add it
-     * http://docs.spring.io/spring-data/data-commons/docs/current/reference/html/repositories.html
-     * Can also write a custom query like so:
-     * @Query("SELECT u FROM User u WHERE u.alias IS NOT NULL")
-     * List<User> findAliased();
-     * OR:
-     * @Query("SELECT u FROM User u WHERE u.alias = ?1")
-     * List<User> findWithAlias(String alias);
-     */
 
     /**
      * @param sourcedid the unique sourcedid key

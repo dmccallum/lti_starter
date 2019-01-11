@@ -162,7 +162,7 @@ public class LTIJWTServiceTest extends BaseApplicationTest {
     public void validateState() throws GeneralSecurityException {
 
         Jws<Claims> jws = ltijwtService.validateState(this.state);
-        assertEquals(jws.getBody().getIssuer(),"ltiStarter");
+        assertEquals("ltiStarter", jws.getBody().getIssuer());
     }
 
     @Test

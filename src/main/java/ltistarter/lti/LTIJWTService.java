@@ -51,7 +51,7 @@ import java.util.Optional;
 @Component
 public class LTIJWTService {
 
-    final static Logger log = LoggerFactory.getLogger(LTIJWTService.class);
+    static final Logger log = LoggerFactory.getLogger(LTIJWTService.class);
 
     @Autowired
     LTIDataService ltiDataService;
@@ -65,7 +65,7 @@ public class LTIJWTService {
      * @return
      */
     //TODO: Add other checks like expiration of the state.
-    public Jws<Claims> validateState(String state) throws SignatureException {
+    public Jws<Claims> validateState(String state) {
         return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
                 // This is done because each state is signed with a different key based on the issuer... so
                 // we don't know the key and we need to check it pre-extracting the claims and finding the kid
@@ -77,8 +77,14 @@ public class LTIJWTService {
                     // convert them to keys from the string stored in DB. There are for sure other ways to manage this.
                     RSAKeyId rsaKeyId = new RSAKeyId("OWNKEY", true);
                     Optional<RSAKeyEntity> rsaKeyEntity =  ltiDataService.getRepos().rsaKeys.findById(rsaKeyId);
-                    String toolPublicKeyString = rsaKeyEntity.get().getKeyKey();
-                    toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
+                    String toolPublicKeyString;
+                    if (rsaKeyEntity.isPresent()) {
+                        toolPublicKeyString = rsaKeyEntity.get().getKeyKey();
+                        toolPublicKey = OAuthUtils.loadPublicKey(toolPublicKeyString);
+                    } else {
+                        throw new SignatureException("Error validating the state. Error getting the tool public key");
+                    }
+
                 } catch (GeneralSecurityException ex){
                     log.error("Error validating the state. Error generating the tool public key",ex);
                     return null;
@@ -100,7 +106,7 @@ public class LTIJWTService {
      * @param jwt
      * @return
      */
-    public Jws<Claims> validateJWT(String jwt) throws SignatureException {
+    public Jws<Claims> validateJWT(String jwt) {
 
         return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
 
@@ -116,20 +122,20 @@ public class LTIJWTService {
                     if (lti3KeyEntity.getJwksEndpoint() != null) {
                         try {
                             JWKSet publicKeys = JWKSet.load(new URL(lti3KeyEntity.getJwksEndpoint()));
-                            //JWKSet publicKeys = JWKSet.load(new File("jwtk.json"));
-                            //JwkProvider provider = new UrlJwkProvider(lti3KeyEntity.getJwksEndpoint());
-                            //Jwk jwk = provider.get(lti3KeyEntity.getPlatformKid());
-                             JWK jwk = publicKeys.getKeyByKeyId(lti3KeyEntity.getPlatformKid());
-                             return ((AsymmetricJWK) jwk).toPublicKey();
-                        } catch (JOSEException ex) {
-                            log.error("Error getting the iss public key", ex);
-                            return null;
-                        } catch (ParseException | IOException ex) {
+                            JWK jwk = publicKeys.getKeyByKeyId(lti3KeyEntity.getPlatformKid());
+                            return ((AsymmetricJWK) jwk).toPublicKey();
+                        } catch (JOSEException | ParseException | IOException ex) {
                             log.error("Error getting the iss public key", ex);
                             return null;
                         }
                     } else {
-                        return OAuthUtils.loadPublicKey(ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(lti3KeyEntity.getPlatformKid(), false)).get().getKeyKey());
+                        Optional<RSAKeyEntity> rsaKey = ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId(lti3KeyEntity.getPlatformKid(), false));
+                        if (rsaKey.isPresent()) {
+                           return OAuthUtils.loadPublicKey(rsaKey.get().getKeyKey());
+                        } else {
+                           log.error("Error retrieving the tool public key");
+                           return null;
+                        }
                     }
                 } catch (GeneralSecurityException ex){
                     log.error("Error generating the tool public key",ex);

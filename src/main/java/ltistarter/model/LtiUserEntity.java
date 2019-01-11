@@ -70,7 +70,7 @@ public class LtiUserEntity extends BaseEntity {
      * @param loginAt date of user login
      */
     public LtiUserEntity(String userKey, Date loginAt) {
-        assert StringUtils.isNotBlank(userKey);
+        if (!StringUtils.isNotBlank(userKey)) throw new AssertionError();
         if (loginAt == null) {
             loginAt = new Date();
         }
@@ -177,9 +177,7 @@ public class LtiUserEntity extends BaseEntity {
         if (userId != that.userId) return false;
         if (email != null ? !email.equals(that.email) : that.email != null) return false;
         if (userKey != null ? !userKey.equals(that.userKey) : that.userKey != null) return false;
-        if (userSha256 != null ? !userSha256.equals(that.userSha256) : that.userSha256 != null) return false;
-
-        return true;
+        return userSha256 != null ? userSha256.equals(that.userSha256) : that.userSha256 == null;
     }
 
     @Override
