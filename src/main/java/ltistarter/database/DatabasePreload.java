@@ -99,8 +99,8 @@ public class DatabasePreload {
                     "-----END PUBLIC KEY-----";
             iss1.setOidcEndpoint("https://lti-ri.imsglobal.org/platforms/89/authorizations/new");
             iss1.setDeploymentId("0002");
-            iss1.setToolKid("Tool_9237492835");
-            iss1.setPlatformKid("9237492835");
+            iss1.setToolKid("hf8Sisblt0zj0KhjY8oAIH0ylU2PuYwnegc8Y9vJq9g");
+            iss1.setPlatformKid("hf8Sisblt0zj0KhjY8oAIH0ylU2PuYwnegc8Y9vJq9g");
             String tool2PrivateString = "-----BEGIN PRIVATE KEY-----" +
                     "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC2QJCkV2gFoQD2" +
                     "z7dQRq7g5qIxPaZJJZAJ07wPxdAJiyuWbo0bMOvH//5IqmOnUdal7iNYtDKwr9Cx" +
@@ -138,8 +138,8 @@ public class DatabasePreload {
                     "mZnjsHA8krV2LeplSYPmzraXLbopAmSJGHibhMFpEfS6rwHaArNZFZ6vJBdWpTXd" +
                     "+QIDAQAB" +
                     "-----END PUBLIC KEY-----";
-            rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",true, tool2PublicString,tool2PrivateString));
-            rsaKeyRepository.saveAndFlush(new RSAKeyEntity("9237492835",false, iss2PublicKey,null));
+            rsaKeyRepository.saveAndFlush(new RSAKeyEntity("hf8Sisblt0zj0KhjY8oAIH0ylU2PuYwnegc8Y9vJq9g",true, tool2PublicString,tool2PrivateString));
+            rsaKeyRepository.saveAndFlush(new RSAKeyEntity("hf8Sisblt0zj0KhjY8oAIH0ylU2PuYwnegc8Y9vJq9g",false, iss2PublicKey,null));
 
             LtiKeyEntity key1 = new LtiKeyEntity("ownkey", "averyweirdsecretsonoinecanuseit");
             key1 = ltiKeyRepository.save(key1);
@@ -152,7 +152,6 @@ public class DatabasePreload {
             iss2.setIss("ltiadv-cert.imsglobal.org");
             iss2.setJwksEndpoint("https://oauth2server.imsglobal.org/jwks");
             String iss3PublicKey = "";
-            iss2.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
             iss2.setOidcEndpoint("https://ltiadvantagevalidator.imsglobal.org/ltitool/oidcauthurl.html");
             iss2.setoAuth2TokenUrl("https://oauth2server.imsglobal.org/oauth2server/authcodejwt");
             iss2.setDeploymentId("testdeploy");
