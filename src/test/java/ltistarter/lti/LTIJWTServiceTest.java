@@ -148,7 +148,7 @@ public class LTIJWTServiceTest extends BaseApplicationTest {
             .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
             .setNotBefore(date) //a java.util.Date
             .setIssuedAt(date) // for example, now
-            .setId("the id") //just a nounce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
+            .setId("the id") //just a nonce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
             .claim("original_iss", "https://sakai.org")  //All this claims are the information received in the OIDC initiation and some other useful things.
             .claim("loginHint", "the login hint claim")
             .claim("ltiMessageHint", "the ltiMessageHint claim")

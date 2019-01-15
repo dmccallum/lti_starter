@@ -14,16 +14,21 @@
  */
 package ltistarter;
 
+import com.google.common.collect.ImmutableMap;
 import ltistarter.lti.LTI3OAuthProviderProcessingFilter;
 import ltistarter.lti.LTIConsumerDetailsService;
 import ltistarter.lti.LTIDataService;
 import ltistarter.lti.LTIJWTService;
 import ltistarter.lti.LTIOAuthAuthenticationHandler;
 import ltistarter.lti.LTIOAuthProviderProcessingFilter;
+import ltistarter.lti.LtiOidcUtils;
+import ltistarter.model.Lti3KeyEntity;
+import ltistarter.model.dto.LoginInitiationDTO;
 import ltistarter.oauth.MyConsumerDetailsService;
 import ltistarter.oauth.MyOAuthAuthenticationHandler;
 import ltistarter.oauth.MyOAuthNonceServices;
 import ltistarter.oauth.ZeroLeggedOAuthProviderProcessingFilter;
+import ltistarter.repository.Lti3KeyRepository;
 import org.h2.server.web.WebServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,12 +55,27 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.oauth.provider.OAuthProcessingFilterEntryPoint;
 import org.springframework.security.oauth.provider.token.InMemoryProviderTokenServices;
 import org.springframework.security.oauth.provider.token.OAuthProviderTokenServices;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringValueResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.UUID;
 
 @ComponentScan("ltistarter")
 @Configuration
@@ -158,6 +178,34 @@ public class Application implements WebMvcConfigurer {
                     .and().csrf().disable(); // probably need https://github.com/spring-projects/spring-boot/issues/179
             /**/
         }
+    }
+
+    @Order(2) // HIGHER YET
+    @Configuration
+    public static class LTI3OidcSecurityConfigurationAdapter extends WebSecurityConfigurerAdapter {
+
+        @Autowired
+        private OAuth2AuthorizationRequestResolver authorizationRequestResolver;
+
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            http
+                    .antMatcher("/oauth2/oidc/lti/**")
+                        .authorizeRequests()
+                            .anyRequest()
+                                .permitAll()
+                        .and()
+                            .csrf()
+                                .disable()
+                        .headers()
+                            .frameOptions()
+                            .disable()
+                    .and()
+                    .oauth2Login()
+                        .authorizationEndpoint()
+                            .authorizationRequestResolver(authorizationRequestResolver);
+        }
+
     }
 
     @Order(3) // VERY HIGH

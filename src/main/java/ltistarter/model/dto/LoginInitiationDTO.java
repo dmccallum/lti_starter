@@ -14,6 +14,8 @@
  */
 package ltistarter.model.dto;
 
+import javax.servlet.http.HttpServletRequest;
+
 public class LoginInitiationDTO {
 
     private String iss;
@@ -29,6 +31,13 @@ public class LoginInitiationDTO {
         this.loginHint = loginHint;
         this.targetLinkUri = targetLinkUri;
         this.ltiMessageHint = ltiMessageHint;
+    }
+
+    public LoginInitiationDTO(HttpServletRequest req) {
+        this(req.getParameter("iss"),
+                req.getParameter("login_hint"),
+                req.getParameter("target_link_uri"),
+                req.getParameter("lti_message_hint"));
     }
 
     public String getIss() {

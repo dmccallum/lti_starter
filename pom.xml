@@ -42,6 +42,11 @@
       <artifactId>commons-collections</artifactId>
       <version>3.2.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>27.0.1-jre</version>
+    </dependency>
 
     <!-- H2 DATABASE -->
     <dependency>
@@ -117,6 +122,10 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-oauth2-client</artifactId>
+    </dependency>
     <!-- OAuth -->
     <dependency>
       <groupId>org.springframework.security.oauth</groupId>
@@ -165,7 +174,7 @@
 
   <profiles>
     <profile>
-      <keyId>debug</keyId>
+      <id>debug</id>
       <build>
         <plugins>
           <plugin>
@@ -244,7 +253,7 @@
 
   <developers>
     <developer>
-      <keyId>azeckoski</keyId>
+      <id>azeckoski</id>
       <name>Aaron Zeckoski</name>
       <email>azeckoski@vt.edu</email>
       <url>http://tinyurl.com/azprofile</url>

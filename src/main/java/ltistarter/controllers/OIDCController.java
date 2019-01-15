@@ -17,6 +17,7 @@ package ltistarter.controllers;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import ltistarter.lti.LTIDataService;
+import ltistarter.lti.LtiOidcUtils;
 import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.RSAKeyEntity;
 import ltistarter.model.RSAKeyId;
@@ -71,10 +72,7 @@ public class OIDCController extends BaseController {
     @RequestMapping("/login_initiations")
     public String loginInitiations(HttpServletRequest req, Model model) {
 
-        LoginInitiationDTO loginInitiationDTO = new LoginInitiationDTO(req.getParameter("iss"),
-                req.getParameter("login_hint"),
-                req.getParameter("target_link_uri"),
-                req.getParameter("lti_message_hint"));
+        LoginInitiationDTO loginInitiationDTO = new LoginInitiationDTO(req);
         // Search for the configuration for that issuer
         List<Lti3KeyEntity> lti3KeyEntityList = lti3KeyRepository.findByIss(loginInitiationDTO.getIss());
         // We deal with some possible errors
@@ -118,49 +116,11 @@ public class OIDCController extends BaseController {
         authRequestMap.put("response_mode", formPost); //Always this value
         authRequestMap.put("response_type", idToken); //Always this value
         authRequestMap.put("scope", openId);  //Always this value
-        String state = generateState(lti3KeyEntity,authRequestMap,loginInitiationDTO);
+        String state = LtiOidcUtils.generateState(ltiDataService, lti3KeyEntity,authRequestMap,loginInitiationDTO);
         authRequestMap.put("state",state); //The state we use later to retrieve some useful information about the OICD request.
         authRequestMap.put("oicdEndpoint", lti3KeyEntity.getOidcEndpoint());  //For the post
         authRequestMap.put("oicdEndpointComplete",generateCompleteUrl(authRequestMap));  //For the GET with all the query string parameters
         return authRequestMap;
-    }
-
-    /**
-     * The state will be returned when the tool makes the final call to us, so it is useful to send information
-     * to our own tool, to know about the request.
-     * @param lti3KeyEntity
-     * @param authRequestMap
-     * @param loginInitiationDTO
-     * @return
-     */
-    private String generateState(Lti3KeyEntity lti3KeyEntity, Map<String, String> authRequestMap, LoginInitiationDTO loginInitiationDTO) throws  GeneralSecurityException, IOException{
-
-        Date date = new Date();
-        Optional<RSAKeyEntity> rsaKeyEntityOptional = ltiDataService.getRepos().rsaKeys.findById(new RSAKeyId("OWNKEY",true));
-        if (rsaKeyEntityOptional.isPresent()) {
-            Key issPrivateKey = OAuthUtils.loadPrivateKey(rsaKeyEntityOptional.get().getPrivateKeyKey());
-            String state = Jwts.builder()
-                    .setHeaderParam("kid", "OWNKEY")  // The key id used to sign this
-                    .setIssuer("ltiStarter")  //This is our own identifier, to know that we are the issuer.
-                    .setSubject(lti3KeyEntity.getIss()) // We store here the platform issuer to check that matches with the issuer received later
-                    .setAudience("Think about what goes here")  //TODO think about a useful value here
-                    .setExpiration(DateUtils.addSeconds(date, 3600)) //a java.util.Date
-                    .setNotBefore(date) //a java.util.Date
-                    .setIssuedAt(date) // for example, now
-                    .setId(authRequestMap.get("nounce")) //just a nounce... we don't use it by the moment, but it could be good if we store information about the requests in DB.
-                    .claim("original_iss", loginInitiationDTO.getIss())  //All this claims are the information received in the OIDC initiation and some other useful things.
-                    .claim("loginHint", loginInitiationDTO.getLoginHint())
-                    .claim("ltiMessageHint", loginInitiationDTO.getLtiMessageHint())
-                    .claim("targetLinkUri", loginInitiationDTO.getTargetLinkUri())
-                    .claim("controller", "/oidc/login_initiations")
-                    .signWith(SignatureAlgorithm.RS256, issPrivateKey)  //We sign it
-                    .compact();
-            log.debug("State: \n {} \n", state);
-            return state;
-        } else {
-            log.error("Error retrieving the state. No key was found.");
-            throw new GeneralSecurityException("Error retrieving the state. No key was found.");
-        }
     }
 
     /**
