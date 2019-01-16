@@ -30,4 +30,5 @@ public interface Lti3KeyRepository extends JpaRepository<Lti3KeyEntity, Long> {
     List<Lti3KeyEntity> findByToolKid(String keyId);
 
     List<Lti3KeyEntity> findByPlatformKid(String keyId);
+
 }

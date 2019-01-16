@@ -202,6 +202,7 @@ public class Application implements WebMvcConfigurer {
                             .disable()
                     .and()
                     .oauth2Login()
+                        .loginProcessingUrl("/oauth2/oidc/lti/authorization")
                         .authorizationEndpoint()
                             .authorizationRequestResolver(authorizationRequestResolver);
         }

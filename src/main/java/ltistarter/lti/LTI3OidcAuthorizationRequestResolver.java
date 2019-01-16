@@ -43,25 +43,32 @@ public class LTI3OidcAuthorizationRequestResolver implements OAuth2Authorization
 
     private OAuth2AuthorizationRequest prepare(OAuth2AuthorizationRequest defaultRequest,
                                                HttpServletRequest origRequest) {
+        if (defaultRequest == null) {
+            return null;
+        }
         LoginInitiationDTO loginInitiationDTO = new LoginInitiationDTO(origRequest);
-        OAuth2AuthorizationRequest decoratedRequest = OAuth2AuthorizationRequest
-                .from(defaultRequest)
-                .state(generateState(defaultRequest, loginInitiationDTO))
-                .additionalParameters(
-                        ImmutableMap.<String,Object>builder()
+        OAuth2AuthorizationRequest decoratedRequest =
+                OAuth2AuthorizationRequest
+                        .from(defaultRequest)
+                        .additionalParameters(ImmutableMap.<String, Object>builder()
                                 .putAll(defaultRequest.getAdditionalParameters())
                                 .put("login_hint", loginInitiationDTO.getLoginHint())
                                 .put("lti_message_hint", loginInitiationDTO.getLtiMessageHint())
                                 .put("response_mode", "form_post")
                                 .put("nonce", generateNonce())
                                 .put("prompt", "none")
-                                .build()
-                )
-                .build();
+                                .build())
+                        .build();
+        // `state` depends on the augmented `additionalParameters`, so build another one...
+        decoratedRequest =
+                OAuth2AuthorizationRequest
+                        .from(decoratedRequest)
+                        .state(generateState(decoratedRequest, loginInitiationDTO))
+                        .build();
 
         // And now the real hacking b/c OAuth2AuthorizationRequest is a final class and it doesn't allow
         // id_token as a flow type...
-        String overriddenRequestUri = UriComponentsBuilder.fromUriString(decoratedRequest.getAuthorizationUri())
+        String overriddenRequestUri = UriComponentsBuilder.fromUriString(decoratedRequest.getAuthorizationRequestUri())
                 .replaceQueryParam("response_type", "id_token")
                 .build(true)
                 .toUriString();

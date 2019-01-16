@@ -2,14 +2,19 @@ package ltistarter.lti;
 
 import ltistarter.model.Lti3KeyEntity;
 import ltistarter.repository.Lti3KeyRepository;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+import org.springframework.util.Base64Utils;
 import org.springframework.util.CollectionUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class LTI3OidcClientRegistrationRepository implements ClientRegistrationRepository {
@@ -29,10 +34,13 @@ public class LTI3OidcClientRegistrationRepository implements ClientRegistrationR
 
     public Lti3KeyEntity findLti3KeyEntityByRegistrationId(String registrationId) {
         // TODO probably can't just treat an iss can actually as a registrationId... registrationId probably
-        //  needs to at least to be a combo of iss+clientId... whatever it is, it has to be built from data we
-        //  get in an OIDC init login request, which would be the URL, plus iss, login_hint, target_link_uri,
-        //  and lti_message_hint fields
-        List<Lti3KeyEntity> matches = lti3KeyRepository.findByIss(registrationId);
+        //  needs to at least to be a combo of iss+clientId but for now we'll just assume iss so that the Platform
+        //  doesn't need per-tool-configuration launch URLs (you wouldn't have those, for example, if you were
+        //  deriving configurations from static metadata files as was done historically with LTI 1.1)... but whatever
+        //  the registration ID is is, it has to be built from data we get in an OIDC init login request, which would be
+        //  the URL, plus iss, login_hint, target_link_uri, and lti_message_hint fields. This impl assumes
+        String decodeRegistrationId = LtiOidcUtils.decodeRegistrationId(registrationId);
+        List<Lti3KeyEntity> matches = lti3KeyRepository.findByIss(decodeRegistrationId);
         if (CollectionUtils.isEmpty(matches)) {
             throw new IllegalArgumentException("No such issuer [" + registrationId + "]");
         }
@@ -45,13 +53,18 @@ public class LTI3OidcClientRegistrationRepository implements ClientRegistrationR
     // TODO caching - probably don't need to construct this bad boy every time an iss requests a launch
     private ClientRegistration asClientRegistration(Lti3KeyEntity lti3KeyEntity) {
         return ClientRegistration
-                .withRegistrationId(lti3KeyEntity.getIss())
+                .withRegistrationId(LtiOidcUtils.encodeRegistrationId(lti3KeyEntity.getIss()))
                 .clientId(lti3KeyEntity.getClientId())
-                .authorizationGrantType(new AuthorizationGrantType("id_token"))
+
+                // Not what we actually want, but strictly validates against a list of known values that don't
+                // include OIDC's 'id_token' type. So we'll coerce it later.
+                .authorizationGrantType(AuthorizationGrantType.IMPLICIT)
+
                 .redirectUriTemplate("{baseUrl}/oauth2/oidc/lti/authorization")
                 .scope("openid")
                 .jwkSetUri(lti3KeyEntity.getJwksEndpoint())
                 .authorizationUri(lti3KeyEntity.getOidcEndpoint())
                 .build();
     }
+
 }

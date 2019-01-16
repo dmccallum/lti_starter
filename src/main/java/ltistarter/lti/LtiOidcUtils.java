@@ -10,8 +10,10 @@ import ltistarter.oauth.OAuthUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Base64Utils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Key;
 import java.util.Date;
@@ -57,6 +59,16 @@ public class LtiOidcUtils {
         } else {
             throw new GeneralSecurityException("Error retrieving the state. No key was found.");
         }
+    }
+
+    public static String decodeRegistrationId(String registrationId) {
+        byte[] bytes = Base64Utils.decodeFromString(registrationId);
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
+
+    public static String encodeRegistrationId(String registrationId) {
+        byte[] bytes = registrationId.getBytes(StandardCharsets.UTF_8);
+        return Base64Utils.encodeToUrlSafeString(bytes);
     }
 
 }
