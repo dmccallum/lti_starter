@@ -117,6 +117,17 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
+    <!-- OIDC -->
+    <dependency>
+      <groupId>org.pac4j</groupId>
+      <artifactId>spring-webmvc-pac4j</artifactId>
+      <version>3.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.pac4j</groupId>
+      <artifactId>pac4j-oidc</artifactId>
+      <version>3.4.0</version>
+    </dependency>
     <!-- OAuth -->
     <dependency>
       <groupId>org.springframework.security.oauth</groupId>

@@ -25,6 +25,8 @@ import ltistarter.oauth.MyOAuthAuthenticationHandler;
 import ltistarter.oauth.MyOAuthNonceServices;
 import ltistarter.oauth.ZeroLeggedOAuthProviderProcessingFilter;
 import org.h2.server.web.WebServlet;
+import org.pac4j.core.config.Config;
+import org.pac4j.springframework.web.SecurityInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +55,9 @@ import org.springframework.security.oauth.provider.token.OAuthProviderTokenServi
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.util.StringValueResolver;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import javax.annotation.PostConstruct;
 
@@ -157,6 +161,29 @@ public class Application implements WebMvcConfigurer {
                     .authorizeRequests().anyRequest().hasRole("LTI")
                     .and().csrf().disable(); // probably need https://github.com/spring-projects/spring-boot/issues/179
             /**/
+        }
+    }
+
+    @Order(2) // HIGHER YET
+    @Configuration
+    // Lightly modified version of: https://github.com/pac4j/spring-webmvc-pac4j-boot-demo/blob/master/src/main/java/org/pac4j/demo/spring/SecurityConfig.java
+    // Also NB this is a *WebMvcConfigurer* we're setting up, not a WebSecurityConfigurerAdapter
+    public static class LTI3OidcAuthConfigurationAdapter implements WebMvcConfigurer {
+
+        @Autowired
+        private Config pac4jConfig;
+
+        @Override
+        public void addInterceptors(InterceptorRegistry registry) {
+            registry.addInterceptor(
+                    new SecurityInterceptor(pac4jConfig, "GoogleOidcClient")
+            ).addPathPatterns("/oidc/*");
+        }
+
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            // this is open
+            http.antMatcher("/oidc/**").authorizeRequests().anyRequest().permitAll().and().csrf().disable().headers().frameOptions().disable();
         }
     }
 
