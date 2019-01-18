@@ -16,11 +16,16 @@ package ltistarter;
 
 import com.google.common.collect.ImmutableList;
 import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod;
+import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.Issuer;
 import com.nimbusds.openid.connect.sdk.OIDCScopeValue;
 import com.nimbusds.openid.connect.sdk.SubjectType;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
+import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import jdk.nashorn.internal.codegen.CompilerConstants;
 import ltistarter.lti.LTI3OAuthProviderProcessingFilter;
 import ltistarter.lti.LTIConsumerDetailsService;
@@ -28,21 +33,29 @@ import ltistarter.lti.LTIDataService;
 import ltistarter.lti.LTIJWTService;
 import ltistarter.lti.LTIOAuthAuthenticationHandler;
 import ltistarter.lti.LTIOAuthProviderProcessingFilter;
+import ltistarter.model.Lti3KeyEntity;
+import ltistarter.model.RSAKeyEntity;
 import ltistarter.oauth.MyConsumerDetailsService;
 import ltistarter.oauth.MyOAuthAuthenticationHandler;
 import ltistarter.oauth.MyOAuthNonceServices;
+import ltistarter.oauth.OAuthUtils;
 import ltistarter.oauth.ZeroLeggedOAuthProviderProcessingFilter;
+import org.apache.commons.lang3.tuple.Pair;
 import org.h2.server.web.WebServlet;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.context.WebContext;
+import org.pac4j.core.exception.TechnicalException;
 import org.pac4j.core.redirect.RedirectAction;
 import org.pac4j.core.redirect.RedirectActionBuilder;
 import org.pac4j.oidc.client.OidcClient;
+import org.pac4j.oidc.client.azuread.AzureAdIdTokenValidator;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.profile.OidcProfile;
+import org.pac4j.oidc.profile.OidcProfileDefinition;
 import org.pac4j.oidc.profile.creator.OidcProfileCreator;
+import org.pac4j.oidc.profile.creator.TokenValidator;
 import org.pac4j.oidc.redirect.OidcRedirectActionBuilder;
 import org.pac4j.springframework.security.web.CallbackFilter;
 import org.pac4j.springframework.security.web.Pac4jEntryPoint;
@@ -84,7 +97,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import javax.annotation.PostConstruct;
 import java.net.URI;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
 @ComponentScan("ltistarter")
 @Configuration
@@ -194,6 +213,9 @@ public class Application implements WebMvcConfigurer {
     // JavaConfig take on https://github.com/pac4j/spring-security-pac4j-demo/blob/master/src/main/resources/securityContext.xml
     public static class LTI3OidcAuthConfigurationAdapter extends WebSecurityConfigurerAdapter {
 
+        @Autowired
+        private LTIDataService ltiDataService;
+
         @Value("https://${server.name}:${server.port}/${server.servlet.context-path:}")
         private String baseUrl;
 
@@ -267,7 +289,46 @@ public class Application implements WebMvcConfigurer {
                     super.addStateAndNonceParameters(context, params);
                 }
             });
-            client.setProfileCreator(new OidcProfileCreator<>());
+            client.setProfileCreator(new OidcProfileCreator<OidcProfile>(config) {
+                @Override
+                protected void internalInit() {
+                    tokenValidator = new TokenValidator(configuration) {
+                        @Override
+                        protected IDTokenValidator createRSATokenValidator(final OidcConfiguration configuration,
+                                                                           final JWSAlgorithm jwsAlgorithm, final ClientID clientID) {
+                            return new IDTokenValidator(
+                                    configuration.findProviderMetadata().getIssuer(),
+                                    clientID,
+                                    jwsAlgorithm,
+                                    findKeySet(configuration.findProviderMetadata().getIssuer(), clientID));
+                        }
+
+                        private JWKSet findKeySet(Issuer issuer, ClientID clientId) {
+                            // TODO change this to only return keys associated directly with a specific client
+                            List<RSAKeyEntity> domainKeys = ltiDataService.getRepos().rsaKeys.findAll();
+                            List<JWK> joseKeys = domainKeys.stream()
+                                    .map(domainKey -> {
+                                        try {
+                                            return Pair.of(
+                                                    domainKey.getKid(),
+                                                    OAuthUtils.loadPublicKey(domainKey.getKeyKey())
+                                            );
+                                        } catch (Exception e) {
+                                            logger.warn("Failed to deserialize public key [" + domainKey.getKid() + "]", e);
+                                            return null;
+                                        }
+                                    })
+                                    .filter(Objects::nonNull)
+                                    .map(jdkKidAndKey -> new RSAKey.Builder(jdkKidAndKey.getRight())
+                                            .keyID(jdkKidAndKey.getLeft().getKid()).build())
+                                    .collect(Collectors.toList());
+                            return new JWKSet(joseKeys);
+                        }
+                    };
+
+                    super.internalInit();
+                }
+            });
             return client;
         }
 
