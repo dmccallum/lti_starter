@@ -26,14 +26,12 @@ import com.nimbusds.openid.connect.sdk.OIDCScopeValue;
 import com.nimbusds.openid.connect.sdk.SubjectType;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
-import jdk.nashorn.internal.codegen.CompilerConstants;
 import ltistarter.lti.LTI3OAuthProviderProcessingFilter;
 import ltistarter.lti.LTIConsumerDetailsService;
 import ltistarter.lti.LTIDataService;
 import ltistarter.lti.LTIJWTService;
 import ltistarter.lti.LTIOAuthAuthenticationHandler;
 import ltistarter.lti.LTIOAuthProviderProcessingFilter;
-import ltistarter.model.Lti3KeyEntity;
 import ltistarter.model.RSAKeyEntity;
 import ltistarter.oauth.MyConsumerDetailsService;
 import ltistarter.oauth.MyOAuthAuthenticationHandler;
@@ -46,14 +44,10 @@ import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
 import org.pac4j.core.context.WebContext;
-import org.pac4j.core.exception.TechnicalException;
-import org.pac4j.core.redirect.RedirectAction;
-import org.pac4j.core.redirect.RedirectActionBuilder;
+import org.pac4j.core.http.callback.PathParameterCallbackUrlResolver;
 import org.pac4j.oidc.client.OidcClient;
-import org.pac4j.oidc.client.azuread.AzureAdIdTokenValidator;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.profile.OidcProfile;
-import org.pac4j.oidc.profile.OidcProfileDefinition;
 import org.pac4j.oidc.profile.creator.OidcProfileCreator;
 import org.pac4j.oidc.profile.creator.TokenValidator;
 import org.pac4j.oidc.redirect.OidcRedirectActionBuilder;
@@ -96,14 +90,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.annotation.PostConstruct;
 import java.net.URI;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static org.pac4j.core.util.CommonHelper.assertNotNull;
 
 @ComponentScan("ltistarter")
 @Configuration
@@ -226,8 +216,8 @@ public class Application implements WebMvcConfigurer {
                     .exceptionHandling()
                         .authenticationEntryPoint(pac4jEntryPoint())
                     .and()
-                        .addFilterBefore(lti3OidcCallbackFilter(), BasicAuthenticationFilter.class)
-                        .addFilterBefore(lti3OidcSecurityFilter(), BasicAuthenticationFilter.class)
+                        .addFilterBefore(newLti3OidcCallbackFilter(), BasicAuthenticationFilter.class)
+                        .addFilterBefore(newLti3OidcSecurityFilter(), BasicAuthenticationFilter.class)
                         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.ALWAYS)
                     .and()
                         .csrf()
@@ -243,16 +233,18 @@ public class Application implements WebMvcConfigurer {
             return new Pac4jEntryPoint(pac4jConfig(), null);
         }
 
-        @Bean
-        public SecurityFilter lti3OidcSecurityFilter() {
+        // You do not want your Servlet filters to be Beans, else they'll be added to request handling chains twice,
+        // once here (and on the path we actually want) and once by ServletContextInitializingBeans.addAdaptableBeans()
+        // (to a root path we don't want)
+        private SecurityFilter newLti3OidcSecurityFilter() {
             return new SecurityFilter(
                     pac4jConfig(),
-                    "Pac4jOidcClient" // TODO having to know list of client names at app startup is a problem long-term since a real LTI app will grow that list at runtime
+                    "Pac4jOidcClient" // TODO having to know list of client names at app startup is potentially a problem long-term since a real LTI app will grow that list at runtime
             );
         }
 
-        @Bean
-        public CallbackFilter lti3OidcCallbackFilter() {
+
+        private CallbackFilter newLti3OidcCallbackFilter() {
             CallbackFilter callbackFilter = new CallbackFilter(pac4jConfig());
             callbackFilter.setSuffix("/oauth2/oidc/lti/authorization");
             return callbackFilter;
@@ -289,6 +281,7 @@ public class Application implements WebMvcConfigurer {
                     super.addStateAndNonceParameters(context, params);
                 }
             });
+            client.setCallbackUrlResolver(new PathParameterCallbackUrlResolver());
             client.setProfileCreator(new OidcProfileCreator<OidcProfile>(config) {
                 @Override
                 protected void internalInit() {
@@ -340,17 +333,20 @@ public class Application implements WebMvcConfigurer {
 
             oidcConfiguration.setScope(OIDCScopeValue.OPENID.getValue());
             oidcConfiguration.setClientId("dmccallum-platform-2-client-1"); // TODO clear example of why this needs to be more dynamic
+//            oidcConfiguration.setClientId("dmccallum-local-platform-2-client-1"); // TODO clear example of why this needs to be more dynamic
 
             OIDCProviderMetadata oidcProviderMetadata = new OIDCProviderMetadata(
                     new Issuer("https://dmp2-lti-ri.imsglobal.org"), // TODO clear example of why this needs to be more dynamic
+//                    new Issuer("http://localhost:3000"), // TODO clear example of why this needs to be more dynamic
                     ImmutableList.of(SubjectType.PUBLIC), // TODO not sure if this is right
                     URI.create("https://oauth2server.imsglobal.org/jwks") // TODO value definitely wrong... don't think IMS RI hosts its keys at a JWKS URL
             );
             oidcProviderMetadata.setAuthorizationEndpointURI(URI.create("https://lti-ri.imsglobal.org/platforms/110/authorizations/new"));
+//            oidcProviderMetadata.setAuthorizationEndpointURI(URI.create("http://localhost:3000/platforms/2/authorizations/new"));
             oidcProviderMetadata.setIDTokenJWSAlgs(ImmutableList.of(JWSAlgorithm.RS256));
             oidcConfiguration.setProviderMetadata(oidcProviderMetadata);
 
-            oidcConfiguration.setUseNonce(true);
+            oidcConfiguration.setUseNonce(true); // TODO IMS-RI seems to always generate its own nonces
 //            oidcConfiguration.setPreferredJwsAlgorithm(JWSAlgorithm.RS256); // TODO unsure if this is needed
 
             oidcConfiguration.setClientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC); // TODO this is not right but is the only way to get OidcAuthenticator to work... we'll need to provide our own impl of that

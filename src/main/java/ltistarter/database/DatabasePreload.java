@@ -199,7 +199,9 @@ public class DatabasePreload {
 
             Lti3KeyEntity iss4 = new Lti3KeyEntity();
             iss4.setClientId("dmccallum-platform-2-client-1");
+//            iss4.setClientId("dmccallum-local-platform-2-client-1");
             iss4.setIss("https://dmp2-lti-ri.imsglobal.org");
+//            iss4.setIss("http://localhost:3000");
             iss4.setDeploymentId("idontknowwhattosetthisto");
             String iss4PublicKey = "-----BEGIN PUBLIC KEY-----" +
                     "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2iSH+X2ZfSPhn9C3KwLF" +
@@ -211,6 +213,7 @@ public class DatabasePreload {
                     "HwIDAQAB" +
                     "-----END PUBLIC KEY-----";
             iss4.setOidcEndpoint("https://lti-ri.imsglobal.org/platforms/110/authorizations/new");
+//            iss4.setOidcEndpoint("https://lti-ri.imsglobal.org/platforms/2/authorizations/new");
             String tool4PrivateString = "-----BEGIN RSA PRIVATE KEY-----" +
                     "MIIEpAIBAAKCAQEA94DLZjdUAXryMMmUrz8L7CSMnH7nIKLQvWTSwlcSNbXoCXEi" +
                     "z7URUd8u5aNrorE6WwrAeUk5PK5oNZ1iBuZ8qQpMHw/AIH3G4i3m0y8JohcJBPtA" +
