@@ -43,8 +43,10 @@ import org.h2.server.web.WebServlet;
 import org.pac4j.core.client.Client;
 import org.pac4j.core.client.Clients;
 import org.pac4j.core.config.Config;
+import org.pac4j.core.context.J2EContext;
 import org.pac4j.core.context.WebContext;
 import org.pac4j.core.http.callback.PathParameterCallbackUrlResolver;
+import org.pac4j.core.matching.Matcher;
 import org.pac4j.oidc.client.OidcClient;
 import org.pac4j.oidc.config.OidcConfiguration;
 import org.pac4j.oidc.profile.OidcProfile;
@@ -85,6 +87,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringValueResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -245,7 +248,27 @@ public class Application implements WebMvcConfigurer {
 
 
         private CallbackFilter newLti3OidcCallbackFilter() {
-            CallbackFilter callbackFilter = new CallbackFilter(pac4jConfig());
+            CallbackFilter callbackFilter = new CallbackFilter(pac4jConfig()) {
+                // Only needed if Client names are in the path rather than as a query param, which we're currently
+                // doing to try to rule out problems with query param encoding on the Platform side. Either way, there's
+                // a potential problem if the Platform expects return URLs to be known statically per-Tool, no matter
+                // how many times that Tool is registered with the platform (which may the case, for example, if
+                // Tools are expected to publish static registration metadata as was the case in LTI 1.1)
+                private final Matcher requestPathMatcher = new Matcher() {
+                    private final AntPathMatcher antMatcher = new AntPathMatcher("/");
+
+                    @Override
+                    public boolean matches(WebContext context) {
+                        return antMatcher.match("/oauth2/oidc/lti/authorization/**", context.getPath());
+                    }
+                };
+
+
+                @Override
+                protected boolean mustApply(final J2EContext context) {
+                    return requestPathMatcher.matches(context);
+                }
+            };
             callbackFilter.setSuffix("/oauth2/oidc/lti/authorization");
             return callbackFilter;
         }
